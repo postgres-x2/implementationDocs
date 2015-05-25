@@ -1,0 +1,1193 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Body of Postgres-XC architecture document
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% \chapter or \section are macro here so that this is portable as separate document or as a part
+% of other document.
+%
+%=================================================================================================
+
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\CHAP{What is Postgres-XC?}
+
+  Postgres-XC is an open source project to provide horizontal scalability including
+  write-scalability, synchronous multi-master, and transparent PostgreSQL interface.
+  It is a collection of tightly coupled database components which can be installed
+  in more than one hardware or virtual machines.
+
+  Write-scalability means Postgres-XC can be configured with as many database servers
+  as you want and handle many more writes (updating SQL statements) than single
+  database server can handle.
+  Multi-master means you can have more than one data base servers which provides
+  single database view.
+  Synchronous means any database update from any database server is immediately visible
+  to any other transactions running in different masters.
+  Transparent means you don't have to worry about how your data is store
+  in more than one database servers internally%
+  \footnote{Of course, in order to get the most from Postgres-XC,
+	you should consider when designing your schema where the table
+	data will be physically stored.
+  }.
+
+  You can configure Postgres-XC to run on more than one physical or virtual servers.
+  They store your data in a distributed way, that is,
+  you can configure each table to be either partitioned or replicated%
+  \footnote{
+	To distinguish from \PG's partitioning, we call this ``\textbf{distributed}''.
+	In distributed database textbooks, this is often referred to as a ``horizontal fragment''.
+  }.
+  When you issue queries, Postgres-XC determines where the target data
+  is stored and issue appropriate SQL statements to servers which have the target
+  data.
+  This is shown in Figure~\ref{archfig:1}.
+
+  % How XC looks like ... synchronous multi-master configuration
+  \begin{figure}[htp]
+    \begin{center}
+      \includegraphics[width=\hsize]{\ArchFig ArchFig_01.eps}
+      \caption{\label{archfig:1}\XC's synchronous multi-master configuration}
+    \end{center}
+  \end{figure}
+
+  In typical web applications, you can use any number of web servers or application servers
+  to handle your transactions.
+  In general, you cannot do this for a database server because all the updates to the database
+  have to be visible to all the transactions.
+  Unlike other database cluster solution, Postgres-XC provides this capability.
+  You can install as many database servers as you like. Each database server
+  provides uniform data view to your applications.
+  Any database update from any server is immediately visible
+  to applications connecting the database from other servers.
+  This feature is called ``synchronous multi master'' capability
+  and this is the most significant feature of Postgres-XC,
+  as illustrated in Figure~\ref{archfig:1}.
+
+  Postgres-XC is based upon PostgreSQL database system and uses most of existing modules
+  including interface to applications, parser, rewriter, planner and executor.
+  In this way, \XC's application interface is compatible to existing PostgreSQL.
+  (As described later, at present, \XC{} has some restrictions to SQL statements,
+  mainly because of the distributed nature of the architecture.
+  This will be improved in the future).
+
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\CHAP{\XC's Goal}
+
+  Ultimate goal of Postgres-XC is to provide synchronous multi-master \PG{} cluster
+  with read/write scalability.
+  That is, Postgres-XC should provide the following features:
+
+  Postgres-XC should allow multiple servers to accept transactions and statements
+  from applications,
+  which is know as ``master'' server in general.
+  In \XC, these components are called ``\textbf{coordinator}''.
+
+  Any coordinator should provide consistent database view to applications.
+  Any updates from any master must be visible in real time manner
+  as if such updates are done in single PostgreSQL server.
+
+  Tables should be able to be stored in the database in replicated or distributed way
+  (known as fragment, shard or partition).
+  Replication and distribution should be transparent to applications,
+  that is, such replicated and distributed table are seen as single table
+  and location or number of copies of each record/tuple is managed by
+  \XC{} and is not visible to applications.
+
+  \XC{} should provide compatible \PG{} API to applications.
+
+  \XC{} should provide single and unified view of underlying \PG{} database servers
+  so that SQL statements does not depend on how tables are stored in distributed way.
+
+  So far, \XC's achievements are as follows:
+
+  \begin{enumerate}
+
+    \item Transaction management is almost complete.
+		\PG{} provides complete ``Read Committed'' transaction isolation level
+		which behaves exactly the same as single \PG{} server.
+		Repeatable read, serializable and
+		savepoint from the client should be added in the future.
+
+    \item Major statement features are available.
+		Some features, such as full cursor feature including \texttt{WHERE CURRENT OF},
+		full constraint support in distributed table and savepoint are not supported.
+		Background of some of them is the nature of table distribution and replication.
+  
+  \end{enumerate}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\CHAP{How To Scale Out Both Reads And Writes?}
+
+  Simply put, parallelism is the key of the scalability.
+  For parallelism, transaction control is the key technology.
+  
+  We'll compare \PG's transaction control with conventional replication clusters
+  and show how \XC{} is safe to run update transactions in multiple nodes first,
+  then shows major Postgres-XC components,
+  and will finally show how to design the database to run transactions in parallel.
+
+%========= SECTION SECTION ===================================================
+
+\SEC{Parallelism In \XC}
+
+  Parallelism is the key to achieve write scalability in \XC.
+  
+  Internally, \XC{} analyzes incoming SQL statement and chooses which server can handle it.
+  It is done by a component called ``\textbf{coordinator}.''
+  Actual statement processing is done by a component called ``\textbf{datanode}.''
+  In typical transactional applications, each transaction reads/writes
+  small number of tuples and lots of transactions has to be handled.
+  In this situation, we can design the database so that one
+  or a few datanodes are involved in handling each statement.
+  
+  In this way, as seen in Figure~\ref{archfig:2},
+  statements are handled in parallel by Postgres-XC servers,
+  which scales transaction throughput.
+  As presented later in this document, with ten servers,
+  the total throughput could be 6.4 compared with single server \PG.
+  Please note that this is accomplished using conventional DBT-1 benchmark,
+  which includes both read and write operation.
+  Figure~\ref{archfig:2}  % Needs to refer to correct figure.
+  shows that present \XC{} is suitable for transactional use case
+  as described in \PG{} Wiki page.
+  By improving supported SQL statements,
+  we expect that \XC{} can be suitable for analytic use case.
+
+  % Parallel statement handling in XC
+  \begin{figure}[htp]
+    \begin{center}
+      \includegraphics[width=\hsize]{\ArchFig ArchFig_01_1.eps}
+      \caption{\label{archfig:2}\XC{} can handle statements in parallel in multiple datanodes.}
+    \end{center}
+  \end{figure}
+
+\SEC{Star Schema}
+
+  There's a typical database schema structure called star schema%
+  \footnote{
+	  \url{http://www.ciobriefings.com/Publications/WhitePapers/DesigningtheStarSchemaDatabase/tabid/101/Default.aspx}
+	  is a typical star schema description.
+	  \url{https://www.youtube.com/watch?v=q77B-G8CA24} is a tutorial how to design start schema.
+  }.
+  It is found in many data warehouse and OLTP applications.
+  Star schema consists of a few and big ``fact'' tables and many smaller ``dimension'' tables.
+  For example, sales database may include ``sales fact'' as a fact table,
+  as well as ``product dimension'' and ``store dimension'' table as dimension tables.
+  Fact tables are big in size and updated frequently.
+  On the other hand, dimension tables are small in size and more stable compared with fact tables.
+  Figure~\ref{archfig:3} shows typical star schema%
+  \footnote{The chart was taken from
+	  \url{http://support.sas.com/documentation/cdl/en/spdsug/64018/HTML/default/viewer.htm#n0mlj75x9c4dtzn1ves84e1op3jt.htm}
+  }.
+
+  % Star schema example
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=0.7\hsize]{\ArchFig star.eps}
+		  \caption{\label{archfig:3}Typical star schema (See above for the source)}
+	  \end{center}
+  \end{figure}
+ 
+  \XC{} architecture is build to leverage star schema characteristics.
+  Usually, if there is more than one fact tables, they tend to share candidate keys.
+  In \XC, it is desirable to shard fact tables using one of such common candidate key.
+  In this way, we cay shard one (or few) big table into smaller pieces and store them
+  in different server (datanode).
+  The column used to determine what datanode each row goes is called a \textbf{distribution key}.
+  
+  Then updates by multiple transactions can be performed in more than one datanode in parallel.
+  With more datanode, we can run more updates to fact tables in parallel.
+  This is basically the background that Postgres-XC provides write scalability.
+  Figure~\ref{archfig:4} illustrates this.
+  
+  % Updating smaller shards
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig Arch_doc_fig_3_3.eps}
+		  \caption{\label{archfig:4}Write scalability in \XC}
+	  \end{center}
+  \end{figure}
+  
+  As shown in Figure~\ref{archfig:5}, we replicate all the dimension tables to all the datanodes.
+  Because most of the joins are done between a fact table and dimension tables,
+  or among fact tables with distribution key involved,
+  we can convert a big join to a union of smaller joins between each shard and replicated tables
+  performed locally in each datanode in parallel.
+  This is how \XC{} provides read scalability.
+
+  % Join pushdown
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig Arch_doc_fig_3_4.eps}
+		  \caption{\label{archfig:5}Decomposing big statement into smaller shards}
+	  \end{center}
+  \end{figure}
+  
+  If a statement has additional predicates in \texttt{WHERE} clause which help to locate
+  a datanode where the target rows are stored, then \XC{} can select only a few of
+  datanode to perform such a query.
+  This is found din many of OLTP workloads.
+  
+  Figure~\ref{archfig:5_1} illustrates this.
+  
+  % Join pushdown with WHERE clause
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig Arch_doc_fig_3_5.eps}
+		  \caption{\label{archfig:5_1}Statement can be optimized more
+			  					      if \texttt{WHERE} clause determines the target}
+	  \end{center}
+  \end{figure}
+  
+  There could be exceptional case where an application needs a join between fact tables
+  without distribution key involved.
+  In this case, \XC{} pushes down as many operation as possible to each datanode
+  and performs final join operation at the top level (coordinator).
+  
+  In other words, if an application cannot utilize this star schema, it is not suited to \XC.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{Replicated table update: Primary node}
+
+  Because of the delay in log-shipping replication,
+  it is quite challenging to enforce consistent visibility
+  and it is not practical to use log-shipping in replicated table update.
+  
+  To enforce data integrity in replicated tables, \XC{} uses a technique called
+  ``\textbf{primary node}.''
+  
+  It is done in the following steps.
+  
+  % Replicated table update steps.
+  \begin{enumerate}
+	  \item Assign specific datanode as ``{\bf primary node}''.
+	  \item Any write to replicated tables should go to the primary node first.
+	  \item If there's any conflicting update, such update will be blocked at the primary node
+	  		and conflicting update does not propagate to other datanode until current updating
+			transaction is committed or aborted.
+  \end{enumerate}
+  
+  Please note that this works with statement-based replication.
+  This technique is similar to that used in pgpool-II's parallel mode.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{\label{sec:ddlPropagation}DDL propagation}
+
+  In \XC, most DDL should propagate to other coordinator and datanode as well.
+  Exception is for node management DDL, such as \texttt{CREATE NODE} and \texttt{ALTER NODE}.  
+  Node management DDL should run before each coordinator/datanode knows each other,
+  automatic propagation was determined not practical.
+  
+  This restriction is not from the architecture but just an implementation issue.
+  In the future, there could be an extension that the node management DDL propagates to
+  other node automatically.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{System catalog for shard and replica}
+
+  In \XC, each table can be defined as ``distributed'' or ``replicated'' with \texttt{CREATE TABLE}
+  \footnote{See \url{http://postgres-xc.sourceforge.net/docs/1_2_1/sql-createtable.html} for details}.
+  and \texttt{ALTER TABLE}
+  \footnote{See \url{http://postgres-xc.sourceforge.net/docs/1_2_1/sql-altertable.html} for details.}
+  statements
+  Distributed tables correspond to fact tables and replicated tables correspond to dimension tables
+  in the star schema respectively.
+  A distributed table is divided into shards using distribution key and stored in nodes as specified.
+  You can specify how to locate each row, by hash, modulo or round-robin.
+  A replicated table is copied to specified set of nodes and its content is maintained to be logically
+  equivalent.
+  
+  \XC{} uses additional system catalog \file{pgxc_class}%
+  \footnote{See \url{http://postgres-xc.sourceforge.net/docs/1_2_1/catalog-pgxc-class.html} for details.}
+  to store sharding and replication information of each table.
+  This can be an extension to \file{pg_class}.
+  \XC{} chose to have this in a separate catalog so that changes in \PG{} and \XC{} can be maintained
+  as separately as possible.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{Limitations coming from sharding and replication}
+
+  As described in section~\ref{archsec:3_5}, \XC{} uses SQL statement to instruct other nodes
+  to do something.
+  Because of this, \XC{} has following restrictions:
+  
+  % XC restriction on OID, CTID, global index and constraint due to XC architecture.
+  \begin{enumerate}
+	  \item Oid value may be different from node to node.
+		    For example, you should not expect \file{pg_class} entry OID and other OID value
+			in system catalogs are the same across the node.
+			If you create a replicated table with OID, OID value will be different from node to node.
+  
+	  \item In replicated tables, CTIDs of given rows may be different from node to node.
+  
+	  \item Each shard of a distributed table has similar characteristics as inherited tables in \PG.
+	  		Constraints across the shard is not simply supported.
+			At present, \XC{} does not support unique index in a distributed table
+			if the distribution column is not involved in index columns.
+			For the same reason, referential integrity between distributed tables
+			are not supported unless it is guaranteed to be maintained locally.
+  \end{enumerate}
+  
+  Restrictions and remarks for specific SQL statement will be given in a separate material.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{\label{archsec:3_5}\XC's Global Transaction Management}
+
+  This section describes how transaction update and visibility are enforced in \XC.
+  You may need to be familiar with internal of PostgreSQL transaction management
+  infrastructure such as \texttt{XID}, snapshot, \texttt{xmin} and \texttt{xmax}.
+  This information is found in ``MVCC revealed'' available at
+  \url{http://momjian.us/main/writings/pgsql/mvcc.pdf}
+  
+  In replication clusters, you can run read transactions in parallel in multiple standby,
+  or slave servers.
+  Replication servers provide read scalability.
+  However, you cannot issue write transactions to standby servers
+  because they don't have means to propagate changes in slaves
+  They cannot maintain consistent view of database to applications for write operations,
+  unless you issue write transactions to single master server.
+  
+  \XC{} is different.
+  
+  \XC{} is equipped with global transaction management capability which provides
+  cluster-wide transaction ordering and cluster-wide transaction status to transactions
+  running on the coordinator (master) and the node which really stores the target data
+  and runs statements, called datanode.
+  This maintains ACID property for distributed transaction and provide atomic visibility%
+  \footnote{
+	  ``Scalable Atomic Visibility with RAMP Transactions,''
+	  SIGMOD'14, June 22 -- 27, 2014, Snowbird, UT, USA,
+	  \url{http://www.bailis.org/papers/ramp-sigmod2014.pdf}
+  }
+  to transactions reading more than one node.
+  
+%========= SECTION SECTION ===================================================
+
+\SEC{Statement based replication and sharding}
+
+  At present, Postgres-XC sends SQL statements to other nodes to read and write tables.
+  There are many discussions if it is a right choice,
+  or if we should use internal plan tree to transfer to other node.
+  
+  An internal analysis of dynamic behavior of PostgreSQL shows that
+  around 30\% of CPU resource is consumed to parse and plan a statement for typical OLTP workloads.
+  Saving this resource looks nice.
+  On the other hand, serialized plan tree can be very big, which suffers network workload.
+  We also need to maintain all the internal information such as Oids and ctids
+  throughout \XC{} cluster, which are not simple.
+  They are the main reason why Postgres-XC chose to send statement from node to node.
+  
+  Because of this and parallelism of transactions and statements,
+  \XC{} does not maintain Oids and ctids of each object and row.
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\CHAP{\XC{} Key Components}
+
+  In this section, major components of \XC{} will be described.
+  
+  \XC{} is composed of three major components, called \textbf{GTM} (Global Transaction Manager),
+  \textbf{Coordinator} and \textbf{Datanode} as shown in Figure~\ref{archfig:6}.
+  Their features are given in the following sections.
+  
+  % Postgres-XC components
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig ArchFig_03_6.eps}
+		  \caption{\label{archfig:6}\XC{} Key Components}
+	  \end{center}
+  \end{figure}
+  
+  Figure~\ref{archfig:7} outlines how each key component interacts.
+  
+  % Interaction among Postgres-XC components
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig ArchFig_03_7.eps}
+		  \caption{\label{archfig:7}Interaction between \XC{} key components}
+	  \end{center}
+  \end{figure}
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{\label{arch:4_1}GTM (Global Transaction Manager)}
+
+  GTM is a key component of \XC{} to provide consistent transaction management
+  and tuple visibility control.
+  First, we will give how \PG{} manages transactions and database update.
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\SUBSEC{How PostgreSQL Manages Transactions}
+
+  In \PG, each transaction is given unique ID called transaction ID (or XID).
+  XID is given in ascending order to determine which transaction is older/newer%
+  \footnote{
+	  More precisely, XID is unsigned 32bit integer.
+	  When XID reaches the max value,
+	  it wraps around to the lowest value (3, as to the latest definition).
+	  \PG{} has a means to handle this, as well as \XC.
+	  For simplicity, it will not be described in this document
+  }.
+  Please let us describe a little in detail how it is done%
+  \footnote{
+	  Please note that this description is somewhat simplified for explanation.
+	  You will find the precise rule in \file{tqual.c} file in \PG's source code.
+  }.
+  
+  When a transaction tries to read a tuple, each tuple has a set of XIDs
+  to indicate transactions which created and deleted the tuple.
+  So if the target tuple is created by an active transaction,
+  it is not committed or aborted and reading transaction should ignore such tuple.
+  In such way (in practice, this is done by \file{tqual.c} module in \PG{} core),
+  if we give each transaction a unique transaction Id throughout the system
+  and maintain snapshot what transaction is active,
+  not only in a single server but transaction in all the servers,
+  we can maintain global consistent visibility of each tuple
+  even when a server accepts new statement from other transactions running only on other servers.
+  
+  These information is stored in ``\texttt{xmin}'' and ``\texttt{xmax}'' fields of each row of table.
+  When we \texttt{INSERT} rows, XID of inserting transaction is recorded at xmin field.
+  When we update rows of tables (with \texttt{UPDATE} or \texttt{DELETE} statement),
+  \PG{} does not simply overwrite the old rows.
+  Instead, \PG{} ``marks'' old rows as ``deleted'' by writing updating transaction's XID
+  to \texttt{xmax} field.
+  In the case of \texttt{UPDATE} (just like \texttt{INSERT}),
+  new rows are created whose \texttt{xmin} field is ``marked'' with XIDs of the creating transaction.
+  
+  These ``\texttt{xmin}'' and ``\texttt{xmax}'' are used to determine which row is visible
+  to a transaction.
+  To do this, \PG{} needs a data to indicate what transactions are running at specific time.
+  This is called ``\textbf{snapshot}.''
+  If a transaction is in a snapshot, it is regarded as \textbf{running} even though it has finished.
+
+  You should understand that this specific time is not just \textbf{now}.
+  If isolation level of a transaction is \texttt{read committed}, the transaction needs consistent
+  visibility for some period of time, at least while an SQL statement is being executed.
+  It is not preferable if SQL statements reads sone rows which are committed during this execution.
+  Therefore, in the case of \texttt{read committed} isolation level, database should obtain a
+  snapshot before the execution of a statement and continue to use it throughout the execution.
+
+  % The above does not describe xmax precisely.   Each snapshot should include xmax, which is
+  % the maximum xid every stated.  At visibility test, if a transaction is not found in the
+  % snapshot and its xid is larger than xmax, the transaction started after the snapshot was
+  % obtained so the transaction is not visible.
+  % If xid is less than xmax, then the transaction should have started when the snapshot was
+  % obtained so the visibility depends upon clog.
+  %
+  % Unfortunately, it has not been implemented at current GTM precisely.
+  % Also, we need an improvement of recent xmin calculation.
+
+  In the case of \texttt{repeatable read} and \texttt{serializable}, the transaction need
+  consistent visibility throughout the transaction execution.
+  In this case, the transaction should obtain the snapshot before statement execution and should
+  continue to use it throughout the transaction execution, not single statement execution.
+  
+  If a transaction which created the row is not running,
+  visibility of each row depends upon the fact if the creating transaction was
+  committed or aborted.
+  Suppose a row of a table which was created by some transaction and is not deleted yet.
+  If the creating transaction is running, such row is visible to the transaction
+  which created the row, but not visible to other transactions.
+  If the creating transaction is not running and was committed the row is visible.
+  If the transaction was aborted, this row is not visible.
+  
+  Therefore, \PG{} needs two kinds of information to determine
+  ``{\it which transaction is running}'' and
+  ``{\it if an old transaction was committed or aborted}.''
+  
+  The former information can be obtained as ``snapshot.''
+  \PG{}  maintains the latter information as ``CLOG.''
+  
+  \PG{} uses all these information to determine which row is visible to a given transaction.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\SUBSEC{Making Transaction Management Global}
+
+  In \XC, GTM provides the following feature for transaction management:
+  
+  % TXN management feature provided by GTM.
+  \begin{enumerate}
+  
+	  \item Assigning XID globally to transactions (GXID, Global Transaction ID).
+	  		With GXID, global transactions can be identified globally.
+			If a transaction writes to more than one node, we can track such writes.`
+  
+	  \item Providing snapshot. GTM collects all the transaction's status
+	  		(running, committed, aborted etc.~ to provide snapshot globally (global snapshot).
+  			Please note that global snapshot includes GXID given to other servers as
+			shown in Figure~\ref{archfig:7}.
+  			This is needed because some older transaction may visit new server after a while.
+  			In this case, if GXID of such a transaction is not included in the snapshot,
+  			this transaction may be regarded as ``{\it old enough}'' and uncommitted
+			rows may be read.
+  			If GXID of such transaction is included in the snapshot from the beginning,
+			such inconsistency does not occur.
+  
+  \end{enumerate}
+  
+  The reason why we need a global snapshot is as follows:
+  
+  2PC protocol enforces update of each distributed transaction.
+  However, it does not enforce to maintain the consistent visibility of a distributed transaction
+  updates to others.
+  Depending upon the timing of commit at each node, the update may or may not be visible to
+  the same transaction which reads these nodes.
+  To maintain the consistent visibility, we need a global snapshot
+  which includes all the running transaction information (GXID, global transaction id, in this case)
+  in \XC{} cluster and use it in the same context of the read operation as found in \PG.
+  
+  To do this, \XC{} introduced a dedicated component called GTM (Global Transaction Manager).
+  GTM runs as a separate component and provide unique and ordered transaction id to each transaction
+  running on \XC{} servers%
+  \footnote{
+	  You can configure GTM in the same server as other components such as coordinator and datanode
+  }.
+  We call this GXID (Global Transaction Id) because this is globally unique ID,
+  
+  GTM receives GXID request from transactions and provide GXID.
+  It also keep track of all the transactions when it started and finished to generate snapshot
+  used to control each tuple visibility.
+  Because snapshot here is also global property, it is called Global Snapshot.
+  
+  As long as each transaction runs with GXID and Global Snapshot,
+  it can maintain consistent visibility throughout the system and it is safe to run transactions
+  in parallel in any servers.
+  On the other hand, a transaction, composed of multiple statements, can be executed
+  using multiple servers maintaining both update and visibility consistently.
+  Outline of this mechanism is illustrated in Figure~\ref{archfig:8}.
+  Please note how transactions included in each snapshot changes according to global transaction.
+  
+  % Global Transaction Management Outline
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=0.8\hsize]{\ArchFig ArchFig_04_2.eps}
+		  \caption{\label{archfig:8}Outline of \XC's Global Transaction Management}
+	  \end{center}
+  \end{figure}
+  
+  GTM provides Global Transaction Id to each transaction and keeps track of the status of
+  all the transactions, whether it is running, committed or aborted, to calculate global
+  snapshot to maintain tuple visibility.
+  
+  Please note that each transaction reports when it starts and ends, as well as when it
+  issues \texttt{PREPARE TRANSACTION} command in two-phase commit protocol.
+  
+  Please also note that global snapshot provided by GTM includes other transactions running
+  on other components.
+  
+  Each transaction requests snapshot according to the transaction isolation level as done
+  in PostgreSQL.
+  If the transaction isolation level is ``\texttt{read committed}'', then transaction will request
+  a snapshot for each statement%
+  If it is ``\texttt{repeatable read},''
+  \footnote{PostgreSQL has another isolation level ``\texttt{serializable}'', based upon SSI.
+	 		Although it seems that global snapshot works well with SSI, this may need further
+	  		discussion and study.
+  }
+  transaction will request a snapshot at the beginning of transaction and reuse it
+  throughout the transaction.
+  
+  GTM also provides global value such as sequence.
+  Other global properties such as timestamps and notification will be an extension
+  in the following releases%
+  \footnote{
+	  GTM provides timestamp and is used to some extent at present.
+  }.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{Coordinator}
+
+  Coordinator is an interface to applications.
+  It acts like conventional PostgreSQL backend process.
+  However, because tables may be replicated or distributed, coordinator does not store
+  any actual data.
+  Actual data is stored by Datanode as described below.
+  Coordinator receives SQL statements, get Global Transaction Id and Global Snapshot as needed,
+  determine which datanode is involved and ask them to execute (whole or a part of) the statement.
+  When issuing statement to datanodes,
+  coordinator propagates GXID and Global Snapshot to run the statement at datanodes in the same
+  transaction context.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{Datanode}
+
+  Datanode actually stores user data.
+  Tables may be distributed among datanodes, or replicated to all the datanodes.
+  Datanode does not handle global view of the whole database and just takes
+  care of local data.
+  Coordinator builds the statement to run in the datanode locally.
+  Incoming statement is examined by the coordinator as described next, and rebuilt
+  to execute at each datanode involved.
+  It is then transferred to each datanodes involved together with GXID and Global
+  Snapshot as needed.
+  Datanode may receive request from various coordinators.
+  However, because each the transaction is identified uniquely and associated with
+  consistent (global) snapshot, datanode doesn't have to worry what coordinator
+  each transaction or statement came from.
+  
+  Overall diagram of transaction control and query processing is shown in Figure~\ref{archfig:9}.
+  
+  % Interaction among components.
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=0.8\hsize]{\ArchFig ArchFig_04_3.eps}
+		  \caption{\label{archfig:9}Interaction among \XC{} components}
+	  \end{center}
+  \end{figure}
+  
+
+%========= SECTION SECTION ===================================================
+
+\SEC{Interaction Between Key Components}
+
+  As explained in the previous section, \XC{} has three major components to provide
+  global consistency of both multi-node reads and writes and to determine which datanode each
+  statement should go and to handle the statement.
+  
+  Sequence of global transaction control and interaction among \XC{} components are
+  given in Figure~\ref{archfig:10}.
+  
+  % Sequence of transaction control
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig ArchFig_03.eps}
+		  \caption{\label{archfig:10}Sequence of Global Transaction Control}
+	  \end{center}
+  \end{figure}
+  
+  As shown in the figure, when a coordinator begins a new transaction, it requests GTM
+  for new transaction ID (GXID, global transaction id).
+  GTM keeps track of such requirement to calculate global snapshot.
+  
+  If the transaction isolation mode is \texttt{REPEATED READ}, snapshot will be obtained and
+  used throughout the transaction.
+  When the coordinator accepts a statement from an application and the isolation mode is
+  \texttt{READ COMMITTED}, snapshot will be obtained from the GTM.
+  Then the statement is analyzed, determined what datanode to go, and converted for
+  each datanode if necessary.
+  
+  Please note that statements will be passed to appropriate datanodes with GXID
+  and global snapshot to maintain global transaction Identity and visibility of
+  each rows of tables.
+  Each result is be collected and calculated into the response to the application.
+  
+  At the end of the transaction, if multiple datanodes are involved in the update in
+  the transaction, the coordinator issues \texttt{PREPARE TRANSACTION} for 2PC, then issue
+  \texttt{COMMIT}.
+  These steps will be reported to GTM as well to keeps track of each transaction
+  status for the calculation of subsequent global snapshots.
+  
+  Please see the section~\ref{arch:4_1} for details of this background.
+
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\CHAP{Isn't GTM A Performance Bottleneck}
+
+  Because GTM can be regarded as ``serializing'' all the transaction processing,
+  it could be a performance bottleneck.
+  
+  In fact, GTM can limit the whole scalability.
+  GTM should not be used in very slow network environment such as wide area network.
+  GTM architecture is intended to be used with Gigabit local network.
+  For the network workload, please see section~\ref{Arch_Net_Workload}.
+  Latency to send each packet may be a problem.
+  We encourage to install \XC{} with local Gigabit network with minimum latency
+  that is, use as fewer switches involved in the connection among GTM,
+  coordinator and datanodes.
+  Typical configuration is shown in Figure~\ref{archfig:11}.
+  
+  This chapter describes general performance issue of GTM in \XC{} along with
+  GTM internal structure alternatives.
+  
+  % GTM configuration without GTM Proxy
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig ArchFig_04.eps}
+		  \caption{\label{archfig:11}GTM Configuration without GTM Proxy}
+	  \end{center}
+  \end{figure}
+  
+
+%========= SECTION SECTION ===================================================
+
+\SEC{\label{archsec:5_1}GTM Implementation without proxy}
+  
+  Sequence in Figure~\ref{archfig:10}, can be implemented as shown in
+  Figure~\ref{archfig:11}.
+  Coordinator backend corresponds to \PG's backend process which handles
+  a database connection from an application and handles each transaction.
+  
+  The outline of the structure and algorithm are as follows:
+  
+  % Outline of the structure and algorithm of GTM w/o proxy.
+  \begin{enumerate}
+	  \item Coordinator backend is provided with GTM client library to obtain GXID and
+	  		snapshot and to report the transaction status.
+	  \item GTM opens a port to accept connection from each coordinator backend.
+	  		When GTM accepts a connection, it creates a thread (GTM Thread) to handle
+			request to GTM from the connected coordinator backend.
+	  \item GTM Thread receives each request, record it and returns GXID, snapshot and
+	  		other response to the coordinator backend.
+	  \item The above sequence is repeated until the coordinator backend requests
+	  		disconnect.
+  \end{enumerate}
+  
+  Each of the above interaction is done separately.
+  For example, if the number of coordinator is ten and each coordinator has
+  one hundred connection from applications, which is quite reasonable in
+  single \PG{} in transactional applications, GTM has to have one thousand of
+  GTM Threads.
+  If each backend issues 25 transaction in a second and each transaction includes
+  five statements and each coordinator runs one hundred backends,
+  then the total number of the interaction between GTM and
+  ten coordinators to provide global snapshot can be estimated as:
+  $10\times 100\times 25\times 5 = 125,000$.
+  Because we have one hundred backends in each coordinator, the length of snapshot
+  (GXID is 32bit integer, as defined in \PG) will be $4 \times 100 \times 10 = 4,000$Bytes.
+  Therefore, GTM has to send about 600Megabytes of data in a second to support this scale.
+  It is quite larger than Gigabit network can support%
+  \footnote{In later section, you will see this estimation is too large. However, this can
+	  be a bottleneck anyway.
+  }.
+  In fact, the order of the amount of data sent from GTM is $O(N^2)$ where $N$ is
+  the number of coordinators.
+  
+  Not only the amount of data is the issue.
+  The number of interaction is an issue.
+  Very simple test will show that Gigabit network provides up to $100,000$ interactions for
+  each server.
+  
+  Network workload measurement in later section shows the amount of data is
+  not that large, but it is obvious that we need some means to reduce both
+  interaction and amount of data.
+  
+  The next section will explain how to reduce both the number of interaction and
+  amount of data in GTM.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{\label{arch:5_2}GTM Proxy Implementation}
+
+  You may have been noticed that each transaction is issuing request to GTM so
+  frequently and we can collect them into single block of requests in each
+  coordinator to reduce the amount of interaction.
+  
+  This is the idea of GTM Proxy Implementation as shown in Figure~\ref{archfig:12}.
+  
+  % GTM configuration with GTM Proxy
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=0.95\hsize]{\ArchFig ArchFig_05.eps}
+		  \caption{\label{archfig:12}GTM Configuration with GTM Proxy}
+	  \end{center}
+  \end{figure}
+  
+  In this configuration, each coordinator backend does not connect to GTM directly.
+  Instead, we have GTM Proxy between GTM and coordinator backend to group multiple
+  requests and responses.
+  GTM Proxy, like GTM explained in Section~\ref{archsec:5_1}, accepts connection from
+  the coordinator backend.
+  However, it does not create new thread.
+  The following paragraphs explains how GTM Proxy is initialized and how it handles
+  requests from coordinator backends.
+  
+  GTM Proxy, as well as GTM, is initialized as follows:
+  
+  % Initialization of GTM proxy and GTM
+  \begin{enumerate}
+	  \item GTM starts up just as described in section~\ref{archsec:5_1}.
+	  		Now GTM can accept connections from GTM Proxies.
+	  \item GTM Proxy starts up.
+  			GTM Proxy creates GTM Proxy Threads.
+  			Each GTM Proxy Threads connect to the GTM in advance.
+  			The number of GTM Proxy Threads can be specified at the startup.
+  			Typical number of threads is one or two so it can save the number of
+			connections between GTM and Coordinators.
+	  \item GTM Main Thread waits for the request connection from each backend.
+  \end{enumerate}
+  
+  When each coordinator backend requests for connection, Proxy Main Thread assigns
+  a GTM Proxy Thread to handle request.
+  Therefore, one GTM Proxy Thread takes care of multiple coordinator backends.
+  If a coordinator has one hundred coordinator backends and one GTM Proxy Thread,
+  this thread takes care of one hundred coordinator backends.
+  
+  Then GTM Proxy Thread scans all the requests from coordinator backend.
+  If coordinator is busier, it is expected to capture more requests in
+  a single scan.
+  Therefore, the proxy can group many requests into single block of requests,
+  to reduce the number of interaction between GTM and the coordinator.
+  
+  Furthermore, in a single scan, we may have multiple request for snapshots.
+  Because these requests can be regarded as received at the same time, we can
+  represent multiple snapshots with single one.
+  This will reduce the amount of data which GTM provides.
+  
+  Test result will be presented later but it is observed that the GTM Proxy is applicable to
+  twenty coordinators at least in short transactional application such as DBT-1.
+  
+  It is not simple to estimate the order of interaction and amount of data in
+  GTM Proxy structure.
+  When the workload to \XC{} is quite light, the interaction will be as same as the case in
+  Section~\ref{archsec:5_1}.
+  On the other hand, when the workload is heavier, the amount of data is expected to be
+  smaller than $O(N^2)$ and the number of interaction will be smaller than $O(N)$.
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\CHAP{Performance And Stability}
+
+%========= SECTION SECTION ===================================================
+
+\SEC{\label{arch:dbt1}DBT-1-Based Benchmark}
+
+  DBT-1 benchmark is used as a basis of performance and stability evaluation.
+  We chose DBT-1 benchmark for the test because
+  
+  % Why we chose DBT-1 as PGXC benchmark?
+  \begin{itemize}
+	  \item It is a typical OLTP workload benchmark available in public for transactional use case.
+	  \item Tables cannot be partitioned simply with single common distribution key.
+	  		We need more than one distribution key.
+  \end{itemize}
+  
+  The following describes how DBT-1 was modified to best tune to \XC.
+  To localize each statement target, we modified DBT-1 tables as follows%
+  \footnote{
+  	Tables are designed so that it cannot simply be partitioned.
+	We need more than one partitioning key.
+  }.
+  
+  % Outline of DBT-1 modification
+  \begin{enumerate}
+	  \item Customer-ID is added to \file{ADDRESS} table because it is practically
+	  		obvious that personal information belongs to each customer and
+			it is common practice not to share such information among different customers.
+	  \item Stock table is divided into two tables, item and stock, as in the latest
+	  		TPC-W specification.
+  \end{enumerate}
+  
+  Also, we changed connection from ODBC to libpq%
+  \footnote{
+  	This is because early \XC{} implementation did not support ODBC
+  }.
+  
+  Table configuration of DBT-1 is illustrated in Figure~\ref{archfig:15} with
+  modification for Postgres-XC.
+  Tables with blue frame are distributed using customer ID, green with shopping
+  cart ID and red with item ID.
+  Tables with black frame are replicated over all the datanodes.
+  
+  % DBT-1 table structure
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig ArchFig_14_1.eps}
+		  \caption{\label{archfig:15}DBT-1-Based Table Structure Used in the Benchmark}
+	  \end{center}
+  \end{figure}
+  
+  Please note the distribution of \file{SHOPPPING_CART} cart and \file{SHOPPING_CART_LINE} tables.
+  It is more favorable if shopping cart and shopping card ID can be distributed using
+  customer ID.
+  However, DBT-1 uses these table even while a customer is not assigned to the shopping cart.
+  This is the reason they are distributed using shopping cart ID.
+  
+  We also found that current DBT-1 is not suitable for long-period test.
+  DBT-1 does not maintain order and order line tables.
+  From time to time, number of outstanding order increases while some of the
+  transaction displays all such orders.
+  Number of displayed order could be thousands and could reduce the throughput as we measure it
+  for a long period as one week.
+  
+  To improve this, we modified the code to limit the number of displayed order.
+  (the modification is available as a part of \XC{} release material).
+  
+  Test environment is shown in Figure~\ref{archfig:16}.
+  We have one GTM, and up to ten database servers.
+  Each server is configured with one coordinator and one datanode.
+  Although we can install coordinator and datanode in separate servers, we used this
+  configuration because it is simpler to balance the workload of coordinator and datanode.
+  
+  % DBT-1 Test Environment
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig ArchFig_14_2.eps}
+		  \caption{\label{archfig:16}\XC{} Test Environment}
+	  \end{center}
+  \end{figure}
+  
+  Additional four servers were used to generate DBT-1 workloads.
+  
+  Each servers are equipped with two NICs (1Gbps each).
+  GTM and some of coordinator are equipped with Infiniband connection to be used when
+  Gigabit network is not sufficient.
+  Preliminary experiment showed that Infiniband is not required for this case.
+  Infiniband is suitable for the workload to use giant packet.
+  DBT-1 workload in \XC{} does not use giant packet.
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\CHAP{Test Result}
+
+  This section describes the benchmark test using DBT-1 based benchmark program and
+  environment described in previous sections.
+  
+  We ran the benchmark program in the following configuration.
+  
+  % Configurations for DBT-1 benchmark
+  \begin{enumerate}
+	  \item Vanilla PostgreSQL for reference.
+	  \item \XC{} with one server.
+	  \item \XC{} with two servers.
+	  \item \XC{} with three servers.
+	  \item \XC{} with five servers.
+	  \item \XC{} with ten servers.
+  \end{enumerate}
+  
+  One coordinator and datanode were installed in each server.
+  GTM was installed in a separate server.
+  GTM-Proxy was optional to measure its effort to network workload.
+  We ran the test with two kinds of workload as follows:
+  
+  % Benchmark workload
+  \begin{enumerate}
+	  \item Full load. Measured throughput and resource consumption with full workload, which is
+	  		the maximum throughput available.
+	  \item 90\% load. Arranged workload to get 90\% throughput of the full load.
+  \end{enumerate}
+  
+  The following sections will explain the throughput, scale factor, resource consumption and
+  network workload of the benchmark.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{Throughput and Scalability}
+
+  This subsection describes the measurement result of throughput and scale factor.
+  
+  Table~\ref{archtab:1} shows the result of full load throughput for various configurations.
+  Figure~\ref{archfig:18} is the chart of Postgres-XC scale factor vs.~ number of servers,
+  based on the result in Table~\ref{archtab:1}.
+  
+  % Full workload benchmark test result (throughput)
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{archtab:1} Summary of measurement (Full load)}
+		  \begin{tabular}{|c|c|c|c|} \hline
+			  Database & Num.of Servers&Throughput (TPS)&Scale Factor\\\hline
+			  \PG&1&2,500&$1.0$\\\hline
+			  \XC{}&1&1,900&$0.72$\\\hline
+			  \XC{}&2&3,630&$1.45$\\\hline
+			  \XC{}&3&5,568&$2.3$\\\hline
+			  \XC{}&5&8,500&$3.4$\\\hline
+			  \XC{}&10&16,000&$6.4$\\\hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+  
+  
+  % DBT-1 Test Result
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=0.8\hsize]{\ArchFig ArchFig_14_3.eps}
+		  \caption{\label{archfig:18}\XC{} Full Load Throughput}
+	  \end{center}
+  \end{figure}
+  
+  From these table and figure, scale factor is quite reasonable, considering that each statements
+  parsed and analyzed twice, by coordinator and datanode.
+  
+  We also ran \XC{} with five coordinators/datanodes for a week with 90\% workload of
+  the full load with five coordinator/datanodes.
+  In this period, GTM, coordinators and datanodes handled GXID wraparound and vacuum freeze successfully.%
+  \footnote{
+  	Because GXID, as well as TransactionID in PostgreSQL, is defined as 32bit unsigned integer,
+	it reaches the maximum value some time (in this case, on 6th or 7th day) and GXID value has
+	to return to the initial valid value.
+  	Until then, all the tuples marked with the first half value of GXID has to be frozen to
+	special XID value defined as \texttt{FrozenTransactionId}.
+  }
+  \footnote{
+  	Please note that this measurement is a bit different from the official scaling chart used today.
+  	The original document is based upon older measurement.
+  	For more precise analysis, we need to rerun the benchmark again with the current hardware.
+  }
+  
+  Figure~\ref{archfig:17} shows the throughput chart. At average, the throughput is quite stable,
+  except that spikes are observed periodically and spike grows with time.
+  
+  % Postgres-XC 90% Load Throughput in One Week Test
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=0.8\hsize]{\ArchFig ArchFig_14_4.eps}
+		  \caption{\label{archfig:17}\XC{} 90\% Load Throughput in One Week Test}
+	  \end{center}
+  \end{figure}
+
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{CPU Consumption}
+
+  We've measured CPU consumption in the benchmark test above to see if
+  \XC{} reasonably uses hardware resource.
+  Table~\ref{tab:ArchCPU} shows CPU usage ($100\% - \mbox{idle}$) for
+  various configuration and nodes with full workload.
+  
+  % --- CPU Usage Table -----------------------------
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{tab:ArchCPU} \XC{} CPU Usage}
+		  \begin{tabular}{|c|c|c|c|}
+			  \hline
+			  Configuration&GTM&CO/DN$^{*}$(Av.)&Loader(Av.)\\\hline
+			  \PG$^{**}$&N/A&99.2\%&5.6\%\\\hline
+			  \XC(1,2)$^{***}$&1.9\%&91.5\%&5.1\%\\\hline
+			  \XC(2,2)$^{***}$&3.9\&&95.6\%&11.7\%\\\hline
+			  \XC(3,2)$^{***}$&6.5\%&96.4\%&19.3\%\\\hline
+			  \XC(5,2)$^{***}$&14.3\%&96.4\%&38.0\%\\\hline
+			  \XC(10,4)$^{***}$&42.2\%&95.7\%&34.4\%\\\hline
+		  \end{tabular}
+
+		  {\footnotesize
+			{}$^{*}$~Coordinator/Datanode\\
+			{}$^{**}$~2 loaders were used.\\
+			{}$^{***}$~Indicates number of Coordinator/Datanode and loader respectively.}
+  
+	  \end{center}
+  \end{table}
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{\label{Arch_Net_Workload}Network Workload}
+
+  We measured the network workload as well.
+  
+  Figure~\ref{Archfig:13_2} summarizes the data transfer rate among each component.
+  
+  This is also summarized in Table~\ref{Archtab:2}.
+  
+  % Network transfer rate
+  \begin{figure}[htp]
+	  \begin{center}
+		  \includegraphics[width=\hsize]{\ArchFig ArchFig_13.eps}
+		  \caption{\label{Archfig:13_2}Network Data Transfer Rate of Each Server}
+	  \end{center}
+  \end{figure}
+  
+  % Network Workload
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{Archtab:2} \XC{} Network Workload}
+		  \begin{tabular}{|p{4.5cm}|c|c|c|c|} \hline
+			  Server&Read(simple)&Read(proxy)&Write(simple)&Write(proxy)\\\hline
+			  GTM $\Leftrightarrow$ Coordinator&3.3MB/s&1.7MB/s&59.3MB/s&28.6MB/s\\\hline
+			  Loader $\Leftrightarrow$ Coordinator&14.0MB/s&16.8MB/s&2.5MB/s&2.6MB/s\\\hline
+			  Coordinator/Datanode $\Leftrightarrow$ Loader/GTM&7.0MB/s&3.8MB/s&6.8MB/s&8.6MB/s\\\hline
+			  Coordinator/Datanode $\Leftrightarrow$ Coordinator/Datanode&4.8MB/s&5.1MB/s&4.8MB/s&4.8MB/s\\\hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+  
+  This measurement indicates the following:
+  
+  \begin{enumerate}
+	  \item GTM Proxy drastically reduces the amount of data transfer between GTM and coordinator.
+	  		Considering the network transfer rate about 100GB/s (Gigabit network), GTM can
+			take care of at least twenty coordinators at full load.
+	  \item Other server's network workload is very light.   Conventional Gigabit network is
+	  		sufficient.
+  \end{enumerate}
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{Connection Handling}
+
+  We want to avoid involving datanodes in a transaction
+  that do not have target data.
+  That is, we do not simply obtain a connection to every datanode for every client
+  session connected to a coordinator.
+  The connections are managed via a connection pooler process.
+  
+  For example, assume we have two tables each distributed across 10 nodes via a hash on one
+  of their respective columns.
+  If we have a two statement transaction (each an \texttt{UPDATE}) where the \texttt{WHERE}
+  clause of each \texttt{UPDATE} contains the hash column being compared to a literal,
+  for each of those statements we can determine the single node to execute on.
+  When each of those statements is executed, we only send it down to the
+  datanode involved. 
+  
+  Assume in our example, only 2 datanodes were involved, one for the
+  first \texttt{UPDATE} statement, and one for the second one.
+  This frees up more connections that can remain available in the pool. In addition,
+  at commit time, we commit on only those nodes involved. 
+  
+  Again using this example, we implicitly commit the transaction in a two-phase commit
+  transaction since more than one datanode is involved. 
+  Note that if both of the \texttt{UPDATE}s went to the same data
+  node, at commit time we detect this and do not bother using two phase
+  commit, using a simple commit instead.
+
+
+%========= SECTION SECTION ===================================================
+
+\SEC{High-Availability Consideration}
+
+  In High-Availability (HA, afterwords) solution, we need to integrate automatic
+  failover system not only for \XC{} components but also for other system components
+  such as server hardware, storage system and network.
+  
+  Because this integration deeply depends upon specific cases, it is determined that
+  such HA integration/solution is outside \XC{} scope, as in the case of vanilla \PG.
+  
+  Instead, \XC's component provides each slave which is available in integrating
+  into system-wide HA solution.
+  
+  So far, gtm proxy does not have any permanent data in it and it does not need
+  specific consideration for HA.
+  
+  Coordinator and datanode uses vanilla \PG's log-shipping replication.  To minimize
+  transaction loss chance, it is highly recommended to connect with slave using
+  synchronous replication.
+  
+  GTM needs separate slave feature.
+  In this case, GTM can copy all its status changes such as GXID and sequence values
+  to the slave.
+  

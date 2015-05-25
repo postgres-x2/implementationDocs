@@ -1,0 +1,234 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Databae Object and DDL
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%========= SECTION SECTION ===================================================
+
+\section{DDL Propagation to Other Nodes}
+  
+  As mentioned in the architecture section~\ref{sec:ddlPropagation} at page~\pageref{sec:ddlPropagation},
+  \XC{} propagates DDL execution to other
+  node except for node management statements:
+  \texttt{CREATE NODE}, \texttt{ALTER NODE}, \texttt{DROP NODE}, 
+  \texttt{CREATE NODE GROUP}, and \texttt{DROP NODE GROUP}.
+  
+  In \PG, functions handling DDL statements start with those in
+  \file{backend/tcop/utility.c}.
+  Parsed DDL statements are fist handled by functions \file{ProcessUtility()}.
+  If no hook is defined, then it is passed to \file{standard_ProcessUtility()}.
+  If target object supports event triggers, then they are passed to
+  \file{ProcessUtilitySlow()}.
+  
+  DDL propagation to other nodes is implemented in each DDL execution code.
+  
+  The following list shows an example for handling \texttt{CREATE TABLESPACE} statement
+  in \file{standard_ProcessUtility()}.
+
+  % Source list of the example: DDL propagation to other node
+  \lstset{tabsize=4, xleftmargin=20pt, basicstyle=\ttfamily\scriptsize, breaklines=true}
+  \begin{lstlisting}[frame=single, tabsize=4, language=C]
+        case T_CreateTableSpaceStmt:
+#ifdef PGXC
+            if (IS_PGXC_COORDINATOR && !IsConnFromCoord())
+#endif
+            /* no event triggers for global objects */
+            PreventTransactionChain(isTopLevel, "CREATE TABLESPACE");
+            CreateTableSpace((CreateTableSpaceStmt *) parsetree);
+#ifdef PGXC
+            if (IS_PGXC_COORDINATOR && !IsConnFromCoord())
+                ExecUtilityWithMessage(queryString, sentToRemote, false);
+#endif
+            break;
+  \end{lstlisting}
+  % End program listing -------------------------------------------------------
+
+  The first block of the directive ``\file{# ifdef PGXC}'' tests if the current node is coordinator and
+  the DDL is not from another coordinator.
+  If so, then this is the root and has to check transaction chain.
+  
+  The second block of the directive ``\file{# ifdef PGXC}'' again tests if it the current node is a coordinator and
+  the DDL is not from another coordinator.
+  If so, this node has to take care of DDL propagation.
+  Otherwise, it just concentrate on local handling.
+  
+  DDL propagation is handled in the same manner for other DDSs as well.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Additional Error Handling}
+
+  If all the DDL can be handled within a transaction block and can handle abort correctly in vanilla \PG,
+  \XC{} can use implicit 2PC to handle errors in other nodes.
+  Unfortunately, some DDL such as \texttt{CRETE TABLESPACE} cannot be issued inside transaction block.
+  \XC{} has to propagate such DDL too and has to complete the statement in atomic way.
+  In other words, \XC{} has to guarantee that the DDL cannot be successful only partly in some nodes.
+  \XC{} needs separate feature to maintain cluster-wide
+  data integrity in such case, without using 2PC.
+  
+  To make this cleanup work, \XC{} defines internal structure \file{dbcleanup_info} of the type
+  \file{abort_callback_type} inside \file{execRemote.c}.
+  
+  \file{set_dbcleanup_callback()} function registers cleanup function and cleanup data specific to each
+  DDL which run only outside a transaction block.
+  If this is registered, then \file{AtEOXact_DBCleanup()} will invoke it at the end of a transaction.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Additional Functions to handle DDL}
+
+  \file{utility.c} is an entry point of most of the DDL handlers.
+  To propagate DDL to other nodes, \XC{} implements several utility functions in this module.
+
+
+%------- Func ----------------------------------------------------------
+
+\FUNC{IsStmtAllowedInLockedMode()}
+
+  Determines if a given statement can run within a transaction block.
+  It is used to determine if dedicated error handling is needed.
+
+
+%------- Func -----------------------------------------------------
+
+\FUNC{ExecUtilityWithMessage()}
+
+  This function performs a statement in a remote node within a transaction block.
+  This handles error by attaching failed node name and by rethrowing it.
+
+
+%------- Func -----------------------------------------------------
+
+\FUNC{ExecUtilityStmtOnNodes()}
+
+  This function executes a utility statement on nodes, including coordinators.
+
+
+%------- Func -----------------------------------------------------
+
+\FUNC{ExecUtilityFindNodes()}
+
+  Determines the list of nodes to launch query on.
+
+
+%------- Func -----------------------------------------------------
+
+\FUNC{ExecUtilityFindNodesRelkind()}
+
+  Determines which node a statement should be executed on the given relation.
+
+
+%------- Func -----------------------------------------------------
+
+\FUNC{GetNodesForCommentUtility()}
+
+  Returns Object ID of object commented.
+
+
+%------- Func -----------------------------------------------------
+
+\FUNC{GetNodesForRulesUtility()}
+
+  Gets the nodes to execute the given RULE related to a utility statement.
+
+
+%------- Func -----------------------------------------------------
+
+\FUNC{DropStmtPreTreatment()}
+
+  Performs a pre-treatment of \texttt{DROP} statement on a remote coordinator.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:tablespace}Tablespace}
+
+\input{tablespace.tex}
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:mview}Materialized View}
+
+\input{matview.tex}
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:updatableView}Automatic Updatable View}
+
+\input{upd_views.tex}
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:trigger}Trigger}
+
+\input{trigger.tex}
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:eventTrigger}Event Trigger}
+
+\input{event_trigger.tex}
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:tempObject}Temporary Objects}
+
+  The change has been made to allow temporary object usage in explicit 2PC transactions.
+  
+  The background that temporary object is not allowed in 2PC is that \textbf{PREPARED} transaction survives
+  the session, while temporary objects do not.
+  
+  In contrary, implicit 2PCs do not survive the session.
+  Even with crashes, \file{pgxc_clean} cleans up implicit 2PC transactions so that they do not
+  survive.
+  It is safe to allow temporary objects to be used in implicit 2PCs.
+  
+  Changes are done in \file{CommitTransaction()} in \file{xact.c}.
+  
+  The patch is as follows:
+
+  % Patch to support temporary objects.
+  \lstset{tabsize=4, xleftmargin=20pt, basicstyle=\ttfamily\scriptsize, breaklines=true}
+  \begin{lstlisting}[frame=single, tabsize=4, language=C]
+--- a/src/backend/access/transam/xact.c
++++ b/src/backend/access/transam/xact.c
+@@ -2117,6 +2117,9 @@ CommitTransaction(void)
+ {
+	TransactionState s = CurrentTransactionState;
+	TransactionId latestXid;
++#ifdef PGXC
++       bool            isImplicit = !(s->blockState == TBLOCK_PREPARE);
++#endif
+							  
+		ShowTransactionState("CommitTransaction");
+
+@@ -2161,7 +2164,7 @@ CommitTransaction(void)
+				*/
+				if (IsOnCommitActions() || ExecIsTempObjectIncluded())
+				{
+-                       if (!EnforceTwoPhaseCommit)
++                       if (!EnforceTwoPhaseCommit || isImplicit)
+							ExecSetTempObjectIncluded();
+						else
+							ereport(ERROR,
+@@ -2655,7 +2658,11 @@ PrepareTransaction(void)
+			* cases, such as a temp table created and dropped all within the
+			* transaction.  That seems to require much more bookkeeping though.
+			*/
++#ifdef PGXC
++       if (MyXactAccessedTempRel && !isImplicit)
++#else
+		if (MyXactAccessedTempRel)
++#endif
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("cannot PREPARE a transaction that has operated on temporary tables")));
+  \end{lstlisting}

@@ -1,0 +1,968 @@
+%%%%k%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% PART 1: Overall Plan
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+	This part is from the document as an outcomoe of the discussion between EDB and NTT
+	Data Intellilink on the topic.
+
+	Members involved are:
+
+	NTT DATA Intellilinkc: Koichi Suzuki, Masataka Saito
+
+	EnterpreseDB: Ahsan Hadi, Robert Haas, Ashutosh Bapat
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\XC{} merge with Community PG}
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Introduction}
+
+	\XC{} is an open source project to provide a write-scalable, synchronous,
+	symmetric, and transparent PostgreSQL cluster solution.
+	It is a collection of tightly coupled database components which
+	can be installed in more than one hardware or virtual machines.
+	\XC{} is the only real horizontal scalability solution built on top of \PG.
+
+	The community \PG{} doesn't have a solution for horizontal scalability today.
+	There is ever growing demand now for horizontal scalable postgres cluster
+	to meet the needs of large data volume workloads that require good performance
+	for both write and read intensive scenarios.
+	There are other solutions for read scalability but no solution other than
+	\XC{} for write-scalable \PG{} Cluster.
+
+	The purpose of this part is provide the features in \XC{} that can be merged into \PG.
+	In order for any features to be merged with Postgres, it will need to undergo
+	architectural and design changes (in majority of the cases) so they can become
+	acceptable to the PG community.
+	The document also summarizes the various technical discussion that happened on
+	merging \XC{} features so far.
+	Every feature would need to be broken into granular tasks.
+	For every task the developer working on it will need to share the appropriate
+	spec and design on the community mailing list before starting to write the patch.
+
+	The document also provides a tentative plan and roadmap for merging \XC{} with
+	the community Postgres.
+	Please note that the time it takes for a patch to get committed in the community
+	is not always predictable therefore the plan will merely reflect our best
+	judgement at this time. 
+
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\XC{} features for PG merge}
+
+	\XC{} features can largely be divided in the following categories,
+	each category needs to be broken down in granular list of features.
+	This chapter breaks down each category in list of tasks/features and
+	captures all the technical design discussion happened so far on merging
+	the feature with PG. Some of the features like Node/Catalog Management
+	and Distributed Object Management cannot be broken down further
+	at this point, the approach for merging these with the community would
+	need to discussed on hackers before they can be broken down further.
+	The design section for each features tries to capture the design discussion
+	happened in meetings and email chains for merging the feature with \PG.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Global Transaction Manager}
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{Introduction}
+
+	\XC{} has three types of nodes viz.~coordinator, datanode and GTM.
+	Coordinators and datanodes share the same binary and are expected
+	(but not checked) to run the same version of \XC.
+	This makes sure that the functionality available on all the nodes
+	is the same.
+
+	The role of a GTM in a \XC{} cluster is to provide a global transaction
+	ID for performing a cluster wide transaction.
+	Coordinators communicate with GTM when they inquire new transaction id,
+	obtain a transaction snapshot, commit a transaction, abort transaction
+	and so on.
+	And data nodes also communicate with GTM when it execute vacuum.
+	The messages used for the global transaction management between coordinators
+	and GTM is listed in Table~\ref{tab:GTM_Operations} below.
+	This list shows the minimal set of operations required to implement the global
+	transaction.
+
+	\begin{table}[htp]
+		\begin{center}
+			\caption{\label{tab:GTM_Operations}GTM Operations}
+			\begin{tabular}{lp{0.5\hsize}}\hline
+				Command&Dscription\\ \hline
+				\file{TXN_BEGIN_GETGXID} & Starts a new transaction and get GXID.\\
+				\file{TXN_START_PREPARED} & Begins to prepare a transaction for commit.\\
+				\file{TXN_COMMIT} & Commits a running or prepared transaction.\\
+				\file{TXN_COMMIT_PREPARED} & Commits a prepared transaction.\\
+				\file{TXN_PREPARE} & Finishes preparing a transaction.\\
+				\file{TXN_ROLLBACK} & Aborts a transaction.\\
+				\file{TXN_GET_GID_DATA} & Gets information associated with a GID, and obtains a GXID.\\
+				\file{SNAPSHOT_GET} & Obtains a global snapshot.\\
+				\file{TXN_BEGIN_GETGXID_AUTOVACUUM} &
+						Starts a new transaction and obtains GXID for autovacuum.\\ \hline
+			\end{tabular}
+		\end{center}
+	\end{table}
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{GTM Design discussion for merging with \PG}
+
+	Now lets discuss what it will take to merge GTM with \XC.
+	The first point that we need to discuss is whether \PG{} needs
+	something like a GTM.
+	Even if we don't have a horizontal scalable cluster,
+	their is a need for GTM in PG in scenarios when their is a
+	transaction with \PG{} replicas.
+
+	Their is a general consensus is if GTM is to be merged with \PG,
+	it will be part of the backend as appose to being a separate
+	component that it is today with \XC.     
+
+	Here are some of the discussions that has happened on the GTM
+	merging with \PG{} and how to manage the global transaction id's.
+
+	Suzuki-san mentioned that the name GTM doesn't really convey
+	the operations of GTM, he would like to use something like
+	``Global Consistent Visibility'' or something similar. 
+
+	To this point, the following is the response from Robert.
+
+	GTM is a not a bad name, but it's probably worth mentioning that,
+	in broad strokes, their are two possible approaches here:
+
+	\begin{enumerate}
+		\item Create a method by which multiple nodes can share
+			  the same XID space. One node is responsible for handing
+			  out XIDs, or ranges of XIDs,
+			  and XIDs advance cluster-wide at a rate which is the sum
+			  of the XID consumption rates of individual nodes.
+			  This obviously will make anti-wraparound vacuums happen
+			  more frequently.
+		\item Create a global transaction identifier space distinct
+			  from the XID space.
+			  Let each node continue to manage its own XID space,
+			  but have some other kind of global identifier for
+			  coordination between nodes.
+	\end{enumerate}
+
+	The global identified can be called GXIDs.
+	This gets a bit tricky because you've got to ensure that for two GXIDs
+	A and B the apparent order of execution is the same on all nodes.
+	Further, if GXID A precedes GXID B in the apparent order of execution,
+	then some node-local transaction without a GXID can either appear to
+	precede both A and B, appear to follow A but precede B,
+	or appear to follow both A and B, but it cannot appear to precede A but follow B.
+
+	With giving a more deeper thoughts on what's feasible here,
+	the second scheme seems to have several possible advantages:
+	if a transaction touches only a subset of the nodes, or touches
+	all the nodes but only writes data on some of them,
+	you can perhaps only consume an XID on the nodes where data is actually written,
+	whereas in the first scheme you eat the XID for everyone.
+	Moreover, you might want to have a loosely-coupled network
+	-- e.g.{} servers A, B, C, D, and E, where A, B, and C have one GTM and
+	C, D, and E have another GTM and those are independent of each other.
+	In the first model, that definitely won't work; in the second model, perhaps it can.
+
+
+	The real key is to figure out how to minimize network round-trips.
+
+	Here's one idea.
+	The GTM keeps a counter, the global commit sequence number (GCSN), which is
+	incremented on every distributed commit.
+	When a distributed transaction wants to commit, it prepares the transaction
+	on all relevant nodes and then sends the identifier used to prepare the
+	transaction and an array of node IDs to the GTM.
+	The GTM increments the GCSN and writes the new GCSN and the identifier to WAL.
+
+	Once WAL is flushed, it acknowledges the commit back to the requestor with the
+	relevant GCSN.
+	It then asynchronously commits the given identifier on the relevant node IDs.
+	If a node crashes, it consults the GTM after recovery and locally commits any
+	transactions that have been committed on the GTM but which it failed to commit
+	before the crash. 
+
+	When a global transaction wants to take a snapshot, it records not only the
+	xmin and in-progress XIDs for the current node, as currently, but also the
+	current GCSN, which it must request from the GTM. 
+
+	If the GTM is local, this is just a shared memory access, but otherwise it
+	requires a network round-trip. When a global transaction makes requests of
+	other nodes via postgres\_fdw or similar, it sends the GCSN along with the request;
+	the remote node is responsible for knowing what snapshot was in effect on that
+	node at the time that GCSN was current, and for not heap-pruning any relevant
+	data until the GTM confirms that the GCSN is no longer in use in any current snapshot.
+
+	It's possible for a server to be told to use a GCSN that is still ``in the future''
+	from its point of view;
+	in that case, it must catch up committing the intermediate transactions before
+	establishing the snapshot.
+	
+	There may be other (better) designs; this is just one that comes to mind after
+	short thought.
+	It has the advantage that if all global transactions are initiated on the node
+	where the GTM is running, there are no additional network roundtrips in
+	the critical path.
+	Commits can be acknowledged to the client as soon as the GTM has WAL-logged
+	the commit, without waiting for the commits on the remote nodes.
+
+	Also, local transactions that only touch a single node can be executed on any
+	node in the cluster without involving the GTM at all.
+
+	To the point of whether we should consider having one parent node just like coordinator
+	in \XC.
+	It doesn't seem particularly hard to allow global transactions to be initiated from any
+	node in the cluster (see sketch above), but it's not clear that there's any way to
+	eliminate the extra network round-trip, so the performance might not be very good.
+
+	We can also distribute the GTM itself. Suppose we distribute the GTM across $N$ nodes.
+	The user configures a quorum $Q$, where $Q > N/2$ and $Q \le N$.
+	A leader is elected; at least $N - Q + 1$ votes are required to elect a leader. 
+
+	Global commits can't be acknowledged until $Q$ nodes have confirmed that the GCSN and
+	string used to prepare the transaction have been locally WAL-logged
+	(and that all previous commits are also locally WAL-logged).
+	Such a cluster can tolerate the loss of up to $Q - 1$ nodes and still be able to
+	complete leader election; the latest commit is guaranteed to be present on at least
+	one node, so no loss of commits is possible.
+	Thus, increasing $Q$ improves availability, but it also increases latency,
+	because we must wait for the fastest $Q$ of $N$ nodes to finish WAL-logging.
+	Increasing $N$ for a fixed $Q$ probably reduces latency a bit, because we need
+	the same number of responses from a larger number of nodes, but it reduces
+	availability, because the number of failures we can tolerate is the same while
+	the number of nodes that can fail is larger.
+	Setting $Q < N/2$ isn't sensible because it could lead to split-brain syndrome,
+	and setting $Q = N$ isn't very helpful when $N > 1$ because you can't tolerate
+	any failures.
+	I would expect $N = 3$, $Q = 2$ to be a pretty common setup.
+
+	Regarding 2PC, the coordinator for a given transaction does \texttt{PREPARE TRANSACTION}
+	on every node.
+	Afterwards, it asks the global transaction manager to commit the transaction on all of
+	the affected nodes.
+	
+	In the proposed design, only one machine at a time is the leader, and only the leader
+	can allocate a new GCSN.
+	The other machines are just to provide redundancy should the leader fail.
+	If you had two leaders handing out GCSNs simultaneously, then transactions wouldn't
+	be totally ordered, and that's no good.
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{Requirement and Consideration for Further Work}
+
+	So far, the folloiwng should be considered as requirements of transaction management
+	in horizontal scalability.
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{\label{plan:implicit}Enforcing distributed transaction ACID properties}
+
+	To enforce ACID properties in updating distributed transactions,
+	the following should be merged back to \PG:
+
+	\begin{enumerate}
+		\item When distributed transaction pudates more than one node, such transaction
+			  should involve two-phase commit protocol to preserve update consistency.
+		\item \label{ACID:2}Because this may not be visible from applications, two-phase
+			  commit protocol may be performed without request from application.
+		\item \label{ACID:3}If \PG's distributed transaction works as a part of other distributed
+			  transaction, \PG{} will receive PREPARE TRANSACTION command.
+			  In this case, if it updates more than one node at PostgreSQL cluster,
+			  such \texttt{PREPARE TRANSACTION} should propagate to all the affected nodes,
+			  as well as preceding \texttt{COMMIT}/\texttt{ABORT}.
+		\item In the case \ref{ACID:2}, \texttt{PREPARED TRANSACTION} is not inteded to
+			  survive the session.
+			  Only error handling may be needed after PostgreSQL crash and recovery.
+			  Temporary object should be allowed in such transaction.
+		\item On the other hand, in the case \ref{ACID:3}, the transaction is intended
+			  to survive the session and application should be able to issue
+			  \texttt{COMMIT}/\texttt{ABORT} to the transaction beyond the session.
+	\end{enumerate}
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{\label{plan:atomicV}Provide Atomic Visibility}
+
+	In distributed updating transaction, commit at each node will be done in different time.
+	That is, despite two-phase commit to enforce update consistency, such update will become
+	visible at different time.
+	In such case, for update of transaction $X$, it can be visible at node $A$ while it can
+	be invisible at node $B$.
+
+	Two-phase commit protocol does not provide consistent visibility so that transaction $X$
+	is visible or invisible at both node $A$ and $B$, but should not visible partly at
+	node $A$ or $B$.
+
+	GTM provides solution for this, known as ``Atomic Visibility'' in literature.
+
+	Through the discussion, we have the following requirement to merge back GTM to \PG:
+
+	\begin{enumerate}
+		\item Each node should be able to operate based on local XID, not GXID as
+			  in the case of current GTM.
+			  This is very essential to make \PG{} horizontal scalability really loosely
+			  coupled, allowing each PG{} server operating as stand-alone database and
+			  can for a cluster as needed.
+		\item GTM binary should be embedded into \PG{} binary, as user worker process or
+			  postmaster child.
+		\item Atomic visibility feature should be optional and should be turned on/off at
+			  runtime.
+		\item It is important to save network workload, at least to avoid specific node
+			  to concentrate network workload.
+	\end{enumerate}
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{Possible Steps}
+
+	Both transparent ACID prpoerty enforcement and Atomic visiblity in distributed transactions
+	in \PG{} is quite new even to experienced community members, we need to take careful
+	step to merge them back.
+
+	First of all, we should publish what issues will be involved in distributed transaction
+	handling in horizontal scalability, transparent ACID property and atomic visibility.
+
+	Next, we should continue discussion on these issues, as well as possible design.
+
+	The code submit will be at the very last stage, which could take long for review,
+	test and further discussion though.
+
+	We may be able to begin the first step at the beginning of the year of 2015 and will
+	take about six month to get it understood and come to good approval on the area of
+	the issues and requirements for the code.
+
+	The second step, design discussion, will take another six month, for the shortest,
+	to come to good compromise.
+
+	The last step will take whole year or more.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Node and Catalog Management}
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Background}
+
+	\XC{} has three types of nodes viz.{} coordinator, datanode and GTM.
+	Coordinators and datanodes share the same binary and are expected
+	(but not checked) to run the same version of \XC.
+	This makes sure that the functionality available on all the nodes is the same.
+
+	All the coordinators have the catalogs in sync.
+	The OIDs of the objects can differ across the nodes, but the objects they point
+	to remain the same in every catalog.
+	In other word, if we were to take schema dumps out of any of the coordinators,
+	it would be same as others.
+	Thus all the objects created in \XC{} are available from any of the coordinators,
+	which allows to have multiple points of contact, all having the same view of the data.
+	Every command fired on any of the coordinators, has the same effect or fetches the same
+	data, giving a multi-master effect to \XC. 
+
+	Data-nodes record all the objects except table distribution and views (including materialized
+	views), so as to maximize push-ability.
+	Hence, an object with same name under the same schema with the same signature on all the
+	nodes, is known to have the same functional behavior, allowing almost any immutable
+	portion of the query to be shipped anywhere in the \XC{} cluster.
+
+	Right now, in \PG, even postgres\_fdw can not be sure that functions with same
+	signatures have same functionality on foreign \PG{} server, thus putting a
+	restriction on the push-ability.
+	It can only push the built-in functions and types, thus restricting push-down of
+	operation involving user defined objects like types, functions, operators etc. 
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Horizontal Cluster in \PG}
+
+	In order to build a truly horizontal cluster, we need to designate certain foreign
+	servers to be part of the cluster, such that metadata (catalogs) can be synced
+	across these servers.
+	
+	Some of the things involved in setting up such metadata-synced nodes (we can
+	certainly put the onus on the user to maintain the metadata in sync across the
+	designated nodes to start with) are as follows
+	
+	\begin{enumerate}
+		\item Every DDL or effect thereof is replicated to all the nodes.
+			  In \XC{} we do it by sending the same DDL to all the coordinators and
+			  datanode (whenever relevant).
+		\item \label{DDL:2}While adding a node to a running cluster (and this is top priority feature
+			  requested by users), we need to sync the metadata on existing node/s to
+			  the node being added. Postgres-XC currently uses dump and load schema from
+			  existing nodes.
+	\end{enumerate}
+	
+	The PG community would be more receptive towards idea for having a loosely coupled
+	cluster using foreign servers instead of tighly coupled cluster that \XC{} has.
+	The loosely-coupled cluster will be using the Foreign server and FDW technology.
+	
+	With regards to point number \ref{DDL:2}, there shouldn't be a requirement that
+	all nodes have to have the same schema.
+	This is, in fact, one of the major complaints that users have about streaming
+	replication today.
+	Sometimes, people will want the entire schema replicated, but we should have a
+	system that can work effectively even if they don't.  
+	
+	Instead of having a mechanism where we say, OK, everything's the same on every
+	node, so you can push everything down.
+	There should be a better method for controlling which things can be pushed
+	down and which things can't.
+	In some cases, ``push down everything'' may be a very reasonable configuration
+	and we should have a way to support that -- but we should also support cases
+	where the user wants to mark certain things as eligible for pushdown, or ineligible
+	for pushdown.
+	
+	When merging with \PG, the purpose of of node management is to assist the user
+	in operations such as creating tables.
+	If the user creates a hash-partitioned table, we want to create the parent on
+	every node in the cluster, but with different children.
+	On each node, one child will be a real table (holding the data on that node)
+	and the other children will be foreign tables (pointing to the other nodes).
+	Or, maybe we can consider having backing table on each node holding the data
+	for that node, and the full inheritance hierarchy only exists on designated
+	coordinator nodes.
+	
+	We may want to have copies of each shard on several nodes and some way for
+	the optimizer to figure out the best access path.
+	
+	There's a lot of possible designs here and it is difficult to say which one
+	is the best at this point.
+	However with PG merge we should aim for a loosely coupled design, not a tightly
+	coupled one; a design that requires the same schema everywhere seems likely to be
+	rejected immediately by the \PG{} community.
+	
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{\XC{} replication method}
+
+	\XC{} allows the tables to be either partitioned or replicated.
+	The method it uses for replication is statement based replication.
+	When merging with \PG, the wal based replication method will be preferred
+	over statement-based replication.
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{Porting \XC{} replication technology to \PG}
+
+	The reason why we should move towards wal based replication instead of statement-based
+	is the following:
+
+	In the \XC{} approach, if a node is down, schema changes can't proceed until it's
+	back up again.
+	In contrast, the logical replication 2ndQuadrant is working on allows a change
+	to be made on any given node and then it will propagate to other nodes as quickly
+	as possible thereafter.
+	If a node is down, it will catch up when it comes back up.
+	The same is true for data changes.
+	This makes the system overall much more robust against partial failures than
+	the \XC{} design.
+	For the above reason, it doesn't make sense to spend any time trying to get
+	\XC's version of this technology in the community;
+	logical replication will do the same thing, but better. 
+
+	The current logical replication support doesn't include DDL, but 2ndQuadrant already has
+	an internal prototype that does include DDL replication, and I imagine that will
+	eventually work its way into \PG.
+	Similarly,  they will create their own tools to do things like add nodes to the cluster,
+	so there's probably no need to re-create such tools specifically for this project.
+
+	One argument of why \XC{} does statement-based replication is that in log based
+	replication we have to allow some delay until the WALl is replayed and is visible.
+	It is not good to enforce atomic visibility in the cluster.
+
+	Here is an answer for the above argument :
+
+	Suppose transaction T1 modifies a table $X$ that is replicated to all nodes.
+	Afterwards, the same connection performs transaction $T2$, which involves a join
+	between table $X$ and a sharded table $Y$.
+	The join is pushed down to all of the remote nodes.
+
+	If we use logical replication, $T2$ might need to wait for the changes made by $T1$
+	to reach every node in the cluster.
+	Specifically, if $T1$ hasn't finished replicating at the time $T2$ starts, then $T2$
+	won't be able to begin executing on any given node until T1 has been replicated
+	to that node.
+	But if you use statement-based replication, T1 will \textbf{always} need to wait for
+	the changes to reach every node in the cluster.
+	$T2$ won't be able able to start on \textbf{any} node until $T1$ has replicated everywhere.
+	So logical replication maybe makes $T2$ wait, but statement-based replication always
+	makes $T1$ wait (which implies that $T2$ starts later, so in essence it waits too).
+
+	This is a slight oversimplification, because right now replication of $T1$ doesn't begin
+	until after $T1$ commits.
+	If statement-based replication can apply the changes to all nodes in parallel,
+	it will be about twice as fast as a solution based on logical replication.
+	But once we fix that, so that logical replication can start replication while
+	the transaction is in progress, I think it will be a clear win over the approach you propose.
+
+	As a counter argument, their is a flaw in wal-based replication approach that we need
+	to be mind-full of,  WAL based replication is known to be slower than firing same
+	transaction on two replicas.
+	This slowness is because of the serial application of WAL.
+	If we want to use WAL based replication, we need to invent a way to apply WALs
+	for different transactions in parallel.
+	But in current situation using WAL for replication would slow down the things
+	a lot for replicated tables.
+
+	This is a fair point, and Andres is aware of it, and thinking about how to solve it, too.
+	This is one of the big reasons it is best to see if we can't leverage logical
+	replication here is because it's already being actively pursued by other people.
+
+	\PG{} already has two forms of built-in replication: streaming replication and
+	logical decoding.
+	I am doubtful that they want a third kind.
+	But even if they'd be willing to accept it, all the work of building would fall
+	on the team doing this project. 
+
+	On the other hand, if we can find a way to leverage logical replication,
+	we can leverage a lot of work that has already been done (or may in the future
+	get done) by other people.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Distributed Query Processor}
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{What is Distributed Query Processor}
+
+	Distributed query processing is one area that Postgres can greatly benefit
+	even if all the functionality from XC is not merged with \PG.
+	The distributed query processing allows for parts of the query to be pushed down
+	to the data nodes (of foreign servers) so the work can be done on the foreign
+	servers and results are sent back to the coordinator node.
+
+	Right now with \PG{} when dealing with FDW's, the only push-down feature available
+	is pushing down of where clause, all the other parts of the query needs to be
+	executed on the originating server.
+	Enabling \PG{} FDW technology to do push-down of more query constructs will surely
+	be a big performance feature.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Query Push-down features in \XC}
+
+	In \XC, the data resides on the datanodes and the coordinator accepts the queries.
+	Hence on datanode, \PG{} planner is used to plan the queries as if on vanilla
+	\PG, except for the aggregates.
+	The datanode can produce only transitioned results for the aggregates or complete
+	aggregate depending upon what coordinator asks it to do.
+
+	The planner at the coordinator has to take into consideration the data layout.
+	It tries to plan the query so that most of the operations happen where the data
+	is i.e.{} on the datanode.
+	It has the logic to push down joins, aggregates, grouping, sorting, limit and
+	expressions or even the whole query. 
+
+	Here's the list of push-down features in \XC{} and a brief description about the same.
+
+	\begin{enumerate}
+		\item Expression shipping -- central to all the push down is idea of expression
+			  shipping (very similar to the function \file{is_foreign_expr()}) in
+			  \PG{} (postgres-fdw?).
+			  Using this functionality we can decide whether a certain expression is safe
+			  to execute and can be executed on the datanode or not.
+			  E.g.{} volatile functions are not safe to be executed on the datanode,
+			  because each datanode will have a different value for it OR an expression
+			  can not be executed on a datanode because the data that it requires is not
+			  available on that datanode (this is important for joins esp.).
+		\item Join push down -- joins are pushed down to the datanodes, if the the rows
+			  from either side, which have potential of joining are on the same node
+			  and the rows from either side on the other nodes are definitely not joinable
+			  given the distribution of both sides and join conditions.
+			  This one statement boils down, into a set of rules which when all obeyed
+			  the join is pushed down.
+			  Explaining all of them in this mail, would be tough.
+			  But, I think, I have explained them in detail in PGOpen 2012 Chicago presentation
+			  (\url{http://www.slideshare.net/ashutoshbapat9/pgxc-scalability-pgopen2012}).
+			  I think this is the largest piece of work.
+		\item Aggregate push down -- for a distributed relation, if the aggregates are not
+			  volatile, we obtain the transition results from the datanode and combine them
+			  at the coordinator.
+			  Thus aggregates are partially pushed down to the datanode.
+			  For this user has to specify an additional combination function at the time of
+			  creation, which accepts the transitioned results one by one and produces the
+			  same result as if all the rows would have gone through transition.
+		\item Grouping push-down -- if all the rows in the same group are available on the
+			  same datanode, the aggregates are completely evaluated on the datanode
+			  (unlike just transitioning in above), for the groups available on that node.
+			  The grouping expressions, join tree, aggregates should be shippable.
+			  This is next big thing after join push down.
+		\item Sorting push-down -- If the sorting expressions are shippable, the sorted
+			  runs are obtained from the datanodes and merged at the coordinator.
+			  If there is only one node involved, then there is no merge required at
+			  the coordinator.
+			  This wasn't as big as seems, since the functionality to merge runs was
+			  already available, only some tweaking required to fake the runs from node
+			  to be runs from the tape.
+		\item Limit pushdown -- if limit and offset expressions are shippable along
+			  with other shippability requirements, we find out the maximum number
+			  of rows (per datanode) required to be fetched to satisfy the limit
+			  and offset criteria and fetch only those rows.
+			  Combining sort and limit push down reduces the network traffic a lot,
+			  if only top few rows are required.
+		\item Fast query shipping -- this is a short cut to avoid all the planning
+			  on the coordinator (creating different join paths esp.), if we find
+			  that the query is completely shippable.
+			  The shippability is judged using the same techniques as above methods.
+		\item DML planning -- We are able to handle triggers on distributed and
+			  replicated tables.
+			  If the trigger is volatile, it will be executed on the coordinator, otherwise
+			  on the datanode.
+			  I think there is also a condition based on the kind of triggers that
+			  relation has.
+			  For example, if there is a before trigger which is not shippable, then the DML
+			  and hence all the triggers are executed on the coordinator.
+			  If all the before triggers are shippable, they are executed on the datanode,
+			  but the after triggers (if not shippable) are executed on the coordinator.
+			  I think this change is as big as join shippability.
+	\end{enumerate}
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Breakdown of Tasks for Merging Query Planner changes with \PG}
+
+	In a nutshell the idea is to re-architect Postgres-XC push-down functionality to adopt
+	FDW technology and submit patches to the community for enabling each type of push-down
+	with FDW.
+	Below is an explanation of the planner push-down features that are available in \XC{} today.
+	
+	The work of merging the Postgres requires more sophisticated rules for assessing
+	pushdown-safety.
+	Merging the \XC{} query push-down capabilities with \PG{} can be broken into the following
+	categories and tasks as shown in Table~\ref{Tab:TaskList}:
+
+	\begin{longtable}{lp{0.5\hsize}p{0.2\hsize}p{0.2\hsize}}
+		\caption{\label{Tab:TaskList}Task List} \\ \hline
+		&Task & Community Acceptance & Effort Estimate \\ \hline
+		\endfirsthead
+		\textbf{I} & \textbf{Category: Infrastructure} & & \\ \hline
+		I-1 & \raggedright
+			  Allow foreign tables to participate in inheritance hierarchies.
+			& \raggedright Yes. Already being worked upon in the community.
+			& Small. By the time, we start looking at this, there is high chance,
+			  it will be done.\\
+		I-2 & \raggedright
+			  Add an executor stage so Foreign Table scans of Append nodes can be
+			  kicked off asynchronously.
+			& \raggedright Likely.  Might not like new executor stage.
+			& Small.\\
+		I-3 & \raggedright
+			  Define more sophisticated rules for assessing pushdown-safety. 
+			& \raggedright May be challenging.
+			& Large.\\ \hline
+		\textbf{J} & \textbf{Category : Join Push-down} & & \\ \hline
+		J-1 & \raggedright
+			  Add a hook to allow basic foreign join pushdown and extend
+			  postgres\_fdw to use it.
+			& \raggedright Community wants this, but previous patches have not been thought good enough.
+			& Small.\\
+		J-2 & \raggedright
+			  Allow declarative constraints on foreign tables.
+			& \raggedright Yes. Already being worked upon in the community.
+			& Medium.\\
+		J-3 & \raggedright
+			  Allow join pushdown on inheritance hierarchies by using constraint
+			  exclusion to prove some combinations empty (optional; could skip and
+			  do J-4 and J-5 instead). 
+			& \raggedright Maybe.  Could be thought too inefficient to be worthwhile.
+			& Medium. \\
+		J-4 & \raggedright
+			  Explicit partition definitions for PostgreSQL, so we can do join
+			  pushdown on partitioned tables without relying on constraint exclusion
+			  (optional, could do J-3 and skip this).
+			  This task also includes partition management.
+			& \raggedright Yes, but no consensus on exact design.
+			& Large. \\
+		J-5 & \raggedright
+			  Allow pushdown of partitioned joins where the partitioning keys and
+			  partition boundaries of the involved tables match (optional, could do
+			  J-3 and skip J-4 and this).
+			& \raggedright Likely, but not discussed.
+			& Medium. \\
+		J-6 & \raggedright
+			  Knowledge of which local tables are replicated remotely to increase
+			  the number of cases in which join pushdown is effective.
+			& \raggedright Maybe, but not discussed.
+			& Medium. \\ \hline
+		\textbf{G} & \textbf{Category: Group Push-down} & & \\ \hline
+		G-1 & \raggedright
+			  Path-based grouping/aggregate planning.
+			& \raggedright Yes. Tom Lane wants to take this path for any push-down work in
+			  aggregation and grouping.
+			& Medium. \\
+		G-2 & \raggedright
+			  Cost-based grouping/aggregate pushdown.
+			& \raggedright Yes, provided it’s based on G-1.
+			& Medium. \\
+		G-3 & \raggedright
+			  Three-step aggregation for grouping-only queries
+			  (e.g.{} \texttt{SELECT DISTINCT} \textit{a} \texttt{FROM} \textit{parent\_table}).
+			& \raggedright Likely, but not discussed in this precise form. 
+			& Medium. \\
+		G-4 & \raggedright
+			  Aggregate collector functions, so that three-step aggregation can be
+			  used in many more cases (e.g.{} \texttt{SELECT} \textit{a}\texttt{,
+			  COUNT(*) FROM} \textit{parent\_table} \texttt{GROUP BY} \textit{a}).
+			  Scope, design and effort estimate.
+			& \raggedright Likely.  Similar ideas discussed in the past.
+			& Medium. \\ \hline
+		\textbf{S} & \textbf{Category: Sort Push-Down} & & \\ \hline
+		S-1 & \raggedright
+			  Create a method for FDW path-generation to know what pathkeys might be
+			  useful at higher levels of the plan tree;
+			  extend \file{postgresGetForeignPaths()} to use it.
+			& \raggedright Likely.  Details to be discussed.
+			& Small. \\
+		S-2 & \raggedright
+			  Extend the join pushdown hook to also provide knowledge of useful
+			  pathkeys, including orderings not available at the baserel level,
+			  and extend postgres\_fdw to match. 
+			& \raggedright Likely.  Depends on outcome of previous projects.
+			& Medium.\\ \hline
+		\textbf{L} & \textbf{Category: Limit Push-Down} & & \\ \hline
+		& (TBD) & & \\ \hline
+	\end{longtable}
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Functional specification for merging query push-down changes with \PG}
+
+	This section describes the way push-down features in \XC{} will look when ported to \PG.
+	The infrastructure to query the foreign servers from a \PG{} server is available in
+	the form of FDW.
+	This section describes the features that have potential to get added to
+	\PG's FDW infrastructure.
+
+	The query push-down work will happen in two phases
+
+	\begin{enumerate}
+		\item Pushing down the operations to a single foreign server.
+		\item Pushing down the operations to multiple foreign servers.
+			  When foreign tables can be part of inheritance hierarchy or partitions
+			  can be foreign tables, the push-down logic will be required to be modified
+			  for multiple foreign servers.
+			  Operations like sort, aggregation will be required to be performed in
+			  a distributed manner, by performing partial operations on foreign servers.
+	\end{enumerate}
+
+	Pushing down any query operation requires following two hooks to be added to the FDW routine
+
+	\begin{enumerate}
+		\item A hook to decide whether the given operation can be pushed down to the foreign
+			  server or not.
+			  Also, the same hook may be used to decide whether such a push-down will be
+			  optimal or not.
+			  For JOINs it means that we add a hook to add paths for a given join between
+			  two foreign relations.
+			  There is discussion in community about using path based approach for finding
+			  the optimal method of performing various SQL operations like Grouping, Sorting etc.
+			  The actual nature of the hook will depend upon how the discussion concludes.
+		\item A hook to convert the above decision into a node in plan tree, which when
+			  executed fetches the required result from the foreign server.
+			  The current ForeignScan node may be modified to suite all the such
+			  operations and thus the hook will be required to spit out ForeignScan
+			  node to fetch the result from the datanode.
+			  The current implementation of ForeignScan is tied to a single foreign table.
+			  This will need to change. This might draw a lot of opinions and conflicts
+			  in the community as there are multiple ways to implement it.
+	\end{enumerate}
+
+	Each FDW will need to implement these hooks. This work will provide hooks for postgres\_fdw.
+
+	Next paragraphs describe the things required for implementing each of the push-downs in postgres\_fdw.
+
+\paragraph{Joins}
+
+	When following conditions are met, we will be able to push-down a join to the foreign
+	server (this list might be slightly modified based on the actual implementation):
+
+	\begin{enumerate}
+		\item The joining relations (foreign tables or results which are evaluated on
+			  the foreign side) are completely evaluated on the same foreign server.
+			  In case there are any restrictions on either side or expressions in the target
+			  list to be evaluated locally, such join can not be pushed down to the foreign server.
+			  This condition may be relaxed for INNER joins and/or the outer side of OUTER joins,
+			  but that needs to be verified.
+			  \XC{} currently does not relax this condition.
+		\item The join conditions can be pushed down to the foreign server.
+		\item We will be considering all the types of JOINs other than SEMI and ANTI join.
+			  SEMI and ANTI joins are not pushed down by \XC{} as well.
+	\end{enumerate}
+
+	This implementation requires following changes
+
+	\begin{enumerate}
+		\item Implement the join push-down path hook which does following:
+			\begin{enumerate}
+				\item Creates joining path for all combinations of inner and outer paths,
+					  which obey conditions above.
+				\item For each such path, calculate the cost of that join.
+					  The optimizer will automatically choose the best path amongst the ones created.
+			\end{enumerate}
+	\end{enumerate}
+
+	Rest of the SQL operations require the join tree to be pushed down to the foreign server,
+	for that operation to be pushed down.
+
+\paragraph{Aggregates and Grouping}
+
+	Aggregates can be pushed down to the foreign server if
+
+	\begin{enumerate}
+		\item The aggregate is a built-in aggregate.
+			  Unlike \XC, we can not ensure that two aggregates having same signatures are
+			  functionally equivalent.
+			  Hence we can not push down user defined aggregates.
+			  This restriction can be removed, if we can make sure that the user defined
+			  objects are identical on all the foreign servers involved.
+		\item All the aggregates in the target list and having clause are pushable.
+		\item All the rows belonging to a given group reside on the same foreign server.
+	\end{enumerate}
+
+	As explained above, we might need infrastructural changes to pathify all the operations
+	other than JOIN.
+
+	When \PG{} is ready to implement the distribution and/or replication of a table across
+	multiple servers, we will require following in order to be able to push down aggregates:
+
+	\begin{enumerate}
+		\item A three step aggregation (transition, combination, finalization), to fetch
+			  partially aggregates results from foreign servers, if the data belonging
+			  to a given group resides on multiple servers.
+			  Please note, that three step aggregation is not needed, if we don’t wan
+			  to partially aggregate the results. Like XC, it will be possible to have
+			  the second step optional in which case, we will not be fetching partially
+			  aggregated results.
+	\end{enumerate}
+
+\paragraph{Sorting}
+
+	Sort operation can be pushed down to the foreign server if all the expressions in the sort
+	clause are pushable to the foreign server.
+
+	When PostgreSQL is ready to implement the distribution and/or replication of a table
+	across multiple servers, we will be able to fetch sorted results from each of the foreign
+	servers involved and merge them at the local server. This will require change to
+	\file{MergeAppend} node, so that multiple children node can initiate sorting on
+	the foreign server in parallel to gain performance.
+
+\paragraph{Limit}
+
+	Limit operation can be pushed down if \texttt{OFFSET} and \texttt{LIMIT} expressions
+	are pushable.
+
+	When \PG{} is ready to implement the distribution and/or replication of a table across
+	multiple servers, we will be able to LIMITed results from each foreign server involved.
+
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Merge Process}
+
+	The \XC{} merge with the community will follow the same development process that is
+	followed by the Postgresql community.
+	Since we are talking about adding a signifiant size features to Postgres, the following
+	steps will be following for all the features that we plan to merge with \PG.
+
+	Submit a proposal / functional spec for the feature that we plan to implement in \PG.
+	This step will get us feedback from the community of the feature that we intend to merge
+	and any changes that need to made to it as needed by the community.
+
+	Once the proposal is accepted, the next step is to share the design with ther community
+	and get it accepted by them.
+	The design can also be subject to changes based on the feedback from the community.
+
+	Submit the patch based on the agreed upon design and go through the community process
+	on hackers to get the patches accepted for commit fest.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Postgres-XC multi-year Merge Plan / Roadmap}
+
+	The \XC{} to \PG{} merge will surely be a multi year project.
+	We are talking about adding a significant piece of functionality in Postgres
+	for making \PG{} a horizontal scalable cluster.
+	Their are no guarantees on how much of \XC{} will get into PG and whether
+	it will get in the same shape and form.
+
+	Figure~\ref{plan:roadmap} is a tentative merge plan/roadmap, this is purely based on guestimate
+	since the number of resources available to work on the project aren’
+   	defined and secondly we don’t have buy-in from community yet on most of these tasks :
+
+	\begin{figure}[htp]
+		\begin{center}
+			\includegraphics[width=\hsize]{MergeBackSchedule.eps}
+			\caption{\label{plan:roadmap}Temtative Roadmap}
+		\end{center}
+	\end{figure}
+
+	Since we don’t know at this point the number of development resources availabl
+   	to work on the \XC{} to \PG{} merge, it is not possible to give an effort estimates
+	for the features.
+	Secondly some of the areas like node and catalog management can’t be defined in detail
+   	because the design proposal for these needs to be discussed with the community before
+	they can be broken down further.
+	Similarly the order in which tasks will be executed cannot be determined until
+	the number of resources available to work on the project are identified. We can work
+	on projects in parallel but the number of development resources available to work on
+	this needs to defined first.
+
+	At this point, we can provide an effort estimate of large, medium and small for every
+	feature.
+	The amount of time it takes to get something in the community PG is dependent on
+	how the feature is accepted in the community.
+	The work practise that we will follow in this project is for the resource to start working
+	on a task to submit the proposal to the community and while he is waiting for feedback,
+	he can take another task from the list and work on that.
+
+	Please refer to Table~\ref{Tab:TaskList} on page \pageref{Tab:TaskList}, which provides
+	effort estimate for the infrastructure, query planner and partitioning changes.
+	The effort estimates for the remaining features are given in Table~\ref{tab:remainingTask}.
+
+	\begin{longtable}{lp{0.5\hsize}p{0.2\hsize}p{0.2\hsize}}
+		\caption{\label{tab:remainingTask}Effort for Remaining Tasks} \\ \hline
+		&Task & Community Acceptance & Effort Estimate \\ \hline
+		\endfirsthead
+		\textbf{V} & \textbf{Category: Distributed transaction visibility} & & \\ \hline
+		V-1 & \raggedright
+			  Implicit 2PC Implementation (handling distributed transaction and enforcing
+			  ACID properties -- section \ref{plan:implicit})
+			& \raggedright Possibly challenging. This could be accepted without argument,
+			  but not necessarily.
+			  There may be concerns about how 2PC transactions get cleaned up.
+			& Large \\ \hline
+		V-2 & \raggedright Atomic visibility Implementation (Section~\ref{plan:atomicV})
+			& Challenging.  Community can probably be convinced that this has value,
+			  but it will take some effort, and the community will be wary of invasive designs.
+			& Very Large \\ \hline
+	\end{longtable}

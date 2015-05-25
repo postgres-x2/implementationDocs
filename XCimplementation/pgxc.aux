@@ -1,0 +1,214 @@
+\relax 
+\@writefile{toc}{\contentsline {chapter}{Preface}{i}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@input{changeHistoryXC.aux}
+\@writefile{toc}{\contentsline {part}{I\hspace  {1em}Postgres-XC{} Implementation}{1}}
+\newlabel{part:analyzing}{{I}{1}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {1}Postgres-XC{} Architecture}{3}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:architecture}{{1}{3}}
+\@input{architecture.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {2}Postgres-XC{} source code tree structure}{33}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:sourceTree}{{2}{33}}
+\@input{sourcetree.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Postgres-XC{} Reference Document}{37}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:documentation}{{3}{37}}
+\@input{documentation.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Node Structure for Parser and Planner}{41}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:internalnodes}{{4}{41}}
+\@input{internalnodes.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Additional Core Modules}{55}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:additionalCoreModules}{{5}{55}}
+\newlabel{sec:locator}{{5.1}{55}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}Locator}{55}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1.1}\texttt  {locator.c}}{55}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1.2}\texttt  {redistrib.c}}{58}}
+\newlabel{sec:FQS}{{5.2}{60}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}FQS: Fast query shipping module}{60}}
+\newlabel{pgxc:FQS}{{5.2.1}{60}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}\texttt  {pgxcship.c} file}{60}}
+\newlabel{sec:planner}{{5.3}{63}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}Postgres-XC{} specific planner module}{63}}
+\newlabel{additional:pgxcpath}{{5.3.1}{63}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.1}\texttt  {pgxcpath.c} module}{63}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3.2}\texttt  {pgxcplan.c} module}{63}}
+\newlabel{sec:pooler}{{5.4}{65}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.4}Connection pooler}{65}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.1}\texttt  {poolmgr.c}}{65}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.2}\texttt  {execRemote.c}}{67}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.3}\texttt  {pgxcnode.c}}{76}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.4}\texttt  {poolutils.c}}{87}}
+\newlabel{sec:gtm}{{5.5}{88}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.5}GTM: Global Transaction Manager}{88}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5.1}Source tree structure}{88}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Utility Functions Forked From PostgreSQL}}{88}}
+\newlabel{tab:gtmsourcetree}{{5.1}{88}}
+\gdef \LT@i {\LT@entry 
+    {1}{122.47304pt}\LT@entry 
+    {2}{124.83418pt}\LT@entry 
+    {1}{178.81447pt}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5.2}Utility functions}{89}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.2.1}Forked Utility Functions}{89}}
+\newlabel{tab:gtmforkedcommon}{{5.2}{89}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.2}{Utility functions forked from PostgreSQL}}{89}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.2.2}gtm\_serialize.c}{90}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.2.3}gtm\_serialize\_debug.c}{92}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.2.4}gtm\_utils.c}{93}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.2.5}gtm\_lock.c}{93}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5.3}Common modules}{95}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.3.1}\texttt  {register\_common.c}}{95}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5.4}Main program}{98}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.1}main.c}{98}}
+\newlabel{tab:gtmdispmsg}{{5.3}{100}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.3}{GTM Message Dispatcher}}{100}}
+\gdef \LT@ii {\LT@entry 
+    {1}{116.26064pt}\LT@entry 
+    {1}{137.11404pt}\LT@entry 
+    {1}{157.96744pt}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.2}\texttt  {gtm\_txn.c}}{101}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces Transaction management in GTM}}{101}}
+\newlabel{fig:addgtmtxn}{{5.1}{101}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.3}gtm\_snap.c}{106}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.4}\texttt  {gtm\_seq.c}}{108}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.4}{\ignorespaces {Members of \texttt  {struct GTM\_SeqInfo}}}}{108}}
+\newlabel{tab:gtmseqinfo}{{5.4}{108}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.5}\texttt  {gtm\_thread.c}}{112}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.6}\texttt  {gtm\_backup.c}}{114}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.7}\texttt  {gtm\_standby.c}}{115}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.8}\texttt  {gtm\_time.c}}{120}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.9}\texttt  {replication.c}}{120}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.10}\texttt  {gtm\_stat.c}}{120}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.5.4.11}\texttt  {gtm\_stats.c}}{121}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5.5}Configuration Modules}{121}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.5}{\ignorespaces Source files related to configuration}}{121}}
+\newlabel{tab:omitgtmconf}{{5.5}{121}}
+\newlabel{sec:gtmProxy}{{5.6}{121}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.6}GTM Proxy}{121}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.1}Utility functions}{121}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.6.1.1}\texttt  {proxy\_utils.c}}{121}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.2}Main Program}{122}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.6.2.1}\texttt  {proxy\_main.c}}{122}}
+\gdef \LT@iii {\LT@entry 
+    {1}{116.26064pt}\LT@entry 
+    {1}{112.38155pt}\LT@entry 
+    {1}{127.25288pt}}
+\newlabel{tab:gtmpxyproc}{{5.6}{123}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.6}{GTM Proxy message processing functions}}{123}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.6.2.2}\texttt  {proxy\_thread.c}}{123}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.3}Configuration Modules}{125}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.7}{\ignorespaces Source files related to configuration}}{125}}
+\newlabel{tab:omitgtmpxyconf}{{5.7}{125}}
+\newlabel{sec:pgxcCtl}{{5.7}{125}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.7}\texttt  {Pgxc\_ctl} module}{125}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7.1}Outline of the module}{126}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7.2}\texttt  {pgxc\_ctl} source code structure}{126}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7.3}Outline of {\tt  pgxc\_ctl} behavior}{126}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.8}{\ignorespaces \texttt  {pgxc\_ctl} source file list}}{127}}
+\newlabel{tab:pgxcCtl:src}{{5.8}{127}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7.4}Inside each program files}{128}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.1}\texttt  {bash\_handler.c}}{128}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.2}\texttt  {config.c}}{129}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.3}\texttt  {coord\_cmd.c}}{135}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.4}\texttt  {datanode\_cmd.c}}{144}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.5}\texttt  {do\_command.c}}{145}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.6}\texttt  {do\_shell.c}}{146}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.7}\texttt  {gtm\_cmd.c}}{150}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.8}\texttt  {gtm\_util.c}}{156}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.9}\texttt  {make\_signature}}{156}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.10}\texttt  {mcxt.c}}{157}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.11}\texttt  {monitor.c}}{157}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.12}\texttt  {pgxc\_ctl.bash}}{157}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.13}\texttt  {pgxc\_ctl.c}}{157}}
+\newlabel{pgxcCtl:step:4}{{4}{158}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.14}\texttt  {pgxc\_ctl\_bash.c}}{158}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.15}\texttt  {pgxc\_ctl\_bash.c}}{158}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.16}\texttt  {pgxc\_ctl\_bash\_2}}{158}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.17}\texttt  {pgxc\_ctl\_conf\_part}}{158}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.18}\texttt  {pgxc\_ctl\_log.c}}{158}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.19}\texttt  {signature.h}}{159}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.20}\texttt  {utils.c}}{159}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.21}variables.c}{160}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.7.4.22}\texttt  {varnames.h}}{163}}
+\newlabel{sec:pgxcClean}{{5.8}{163}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.8}Pgxc\_clean module}{163}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.8.1}Two-Phase Commit Transactions in Postgres-XC}{163}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.8.2}Transaction Commit Steps}{164}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.8.3}Possible Transaction Status Conflicts}{165}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.8.3.1}Implicit 2PC}{165}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.8.3.2}Explicit 2PC}{165}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.8.3.3}Possible status conflicts and their cleaning-up}{165}}
+\newlabel{sec:pgxcMonitor}{{5.9}{166}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.9}Pgxc\_monitor module}{166}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.9.1}Monitoring GTM and GTM Proxy}{166}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.9.2}Monitoring Coordinator and Datanode}{167}}
+\newlabel{sec:pgxcDdl}{{5.10}{167}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.10}Pgxc\_ddl module}{167}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Configure Database}{169}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:configureDatabase}{{6}{169}}
+\@input{configureDatabase.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Database Maintenance}{175}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:maintenanceDatabase}{{7}{175}}
+\@input{maintenanceDatabase.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {8}Cluster Management}{179}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:nodeManagement}{{8}{179}}
+\@input{clusterManagement.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {9}Database Object and DDL}{191}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:DDL}{{9}{191}}
+\@input{databaseObjectAndDDL.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {10}Transaction Management}{201}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:txnManagement}{{10}{201}}
+\@input{txnManagement.aux}
+\@input{backendTxnMgmt.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {11}Planner and Executor}{221}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:plannerExecutor}{{11}{221}}
+\@input{plannerAndExecutor.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {12}DML}{227}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:DML}{{12}{227}}
+\@input{DML.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {13}Session and system functions}{231}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:func}{{13}{231}}
+\@input{functions.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {14}Miscellaneous Feature}{233}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:misc}{{14}{233}}
+\@input{misc.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {15}Regression Tests}{237}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:regression}{{15}{237}}
+\@input{regression.aux}
+\@writefile{toc}{\contentsline {chapter}{\numberline {16}Benchmark Extension}{241}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{chap:benchmark}{{16}{241}}
+\@input{benchmark.aux}
+\@writefile{toc}{\contentsline {part}{II\hspace  {1em}Postgres-XC Cluster Design, Configuration and Operation}{245}}
+\newlabel{part:pgxcCtl}{{II}{245}}
+\@input{pgxcCtl.aux}

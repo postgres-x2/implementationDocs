@@ -1,0 +1,428 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Chapter "Node Structure for Parser and Planner
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:newnodes}New nodes}
+
+  Additional nodes specific to \XC~ is listed in Table \ref{tab:newnodes}.
+  
+  \begin{table}[htp]
+  \begin{center}
+  \caption{\label{tab:newnodes}Additional Internal Node Structures}\vspace{5pt}
+  \begin{tabular}{llp{0.5\hsize}} \hline
+  	Structure Name & Source File\footnote{Path is omitted if not ambiguous.} & Description\\ \hline
+  	{\tt AlterNodeStmt} & {\tt parsenodes.h} & Parsed {\tt ALTER NODE} statement.\\
+  	{\tt BarrierStmt} & {\tt parsenodes.h} & Parsed {\tt CREATE BARRIER} statement.\\
+  	{\tt CreateGroupStmt} & {\tt parsenodes.h} & Parsed {\tt CREATE NODE GROUP} statement.\\
+  	{\tt CreateNodeStmt} & {\tt parsenodes.h} & Parsed {\tt CREATE NODE} statement.\\
+  	{\tt DistributeBy} & {\tt primnodes.h} & Represents {\tt DISTRIBUTE BY} clause.\\
+  	{\tt DropGroupStmt} & {\tt parsenodes.h} & Parsed {\tt DROP NODE GROUP} statement.\\
+  	{\tt DropNodeStmt} & {\tt parsenodes.h} & Parsed {\tt DROP NODE} statement.\\
+  	{\tt ExecNodes} & {\tt locator.h} & A set of node to execute.\\
+  	{\tt RemoteQueryPath} & {\tt relation.h} & Represents queries to be sent to datanodes.\\
+  	{\tt RemoteQueryState} & {\tt execRemote.h} & Status of remote query execution.\\
+  	{\tt RemoteQuery} & {\tt pgxcplan.h} & Represents whole remote query.
+										   Output of the planner.\\
+  	{\tt SimpleSort} & {\tt pgxcplan.h} & Represents remote sort.\\
+  	\hline
+  \end{tabular}
+  \end{center}
+  \end{table}
+  
+  Outline of each table is also given as follows.
+  
+  \StructMemberHdr{AlterNodeStmt}
+	  \StructMember{type}{NodeTag}{Value \file{T_AlterNodeStmt} is used.}
+	  \StructMember{node_name}{char *}{Node name to change attributes}
+	  \StructMember{options}{List *}{List of options in the statement.}
+  \StructMemberTrailor
+  
+  \StructMemberHdr{BarrierStmt}
+	  \StructMember{type}{NodeTag}{Value \file{T_BarrierStmt} is used.}
+	  \StructMember{id}{char *}{Name of the supplied barrier is set.}
+  \StructMemberTrailor
+  		  
+  \StructMemberHdr{CreateGroupStmt}
+	  \StructMember{type}{NodeTag}{Value \file{T_CreateGroupStmt} is used.}
+	  \StructMember{group_name}{char *}{Name of the node group.}
+	  \StructMember{nodes}{List *}{List of the nodes in the group}
+  \StructMemberTrailor
+  
+  \StructMemberHdr{CreateNodeStmt}
+	  \StructMember{type}{NodeTag}{Value \file{T_CreateNodeStmt} is used.}
+	  \StructMember{node_name}{char *}{Node name.}
+	  \StructMember{options}{List *}{List of the properties of the node.}
+  \StructMemberTrailor
+  
+  \StructMemberHdr{DistributeBy}
+	  \StructMember{type}{NodeTag}{Value \file{T_DistributeBy} is used.}
+	  \StructMember{disttype}{DistributionType}{Type of distribution.
+		  			\file{DISTTYPE_REPLICATION}, \file{DISTTYPE_HASH}, \file{DISTTYPE_ROUNDROBIN} or
+					\file{DISTTYPE_MODULO} is used.}
+	  \StructMember{colname}{char *}{Distribution column name.}
+  \StructMemberTrailor
+  
+  \StructMemberHdr{DropGroupStmt}
+	  \StructMember{type}{NodeTag}{Value \file{T_DropGroupStmt} is used.}
+	  \StructMember{group_name}{char *}{Name of the group to drop.}
+  \StructMemberTrailor
+  
+  \StructMemberHdr{ExecNodes}
+	  \StructMember{type}{NodeTag}{Value \file{T_ExecNodes} is used.}
+	  \StructMember{primarynodelist}{List *}{Primary node list.  Set to \file{NULL} if operation is
+		  			not replicated write.}
+	  \StructMember{nodelist}{List *}{List of the target nodes.}
+	  \StructMember{baselocatortype}{char}{
+					Locator type of the target relation.
+					Definitions will be found in \file{locator.h}.\\
+					\file{'R'} for replicated type.\\
+					\file{'H'} for hash distribution type.\\
+					\file{'G'} for range distribution type. This is for extension and not used at present.\\
+					\file{'N'} for round-robin distribution type.\\
+					\file{'C'} for custom distribution type. This is for extension and not used at present.\\
+					\file{'M'} for modulo distribution type.\\
+					\file{'O'} for non-distribution type.\\
+					\file{'D'} for distribution type without specific scheme.  It is used as a result of JOIN
+					of replicated and distributed table.
+	  }
+	  \StructMember{en_expr}{Expr}{
+					Expression used to determine the target node at execution time.
+					It is used when the planner cannot determine the execution nodes.
+	  }
+	  \StructMember{en_relid}{Oid}{Relation used to determine execution nodes using \file{en_expr}.}
+	  \StructMember{accesstype}{RelationAccessType}{
+					Access type used to determine execution nodes.
+					The type \file{RelationAccessType} is defined in \file{locator.h}.
+	  }
+	  \StructMember{en_dist_vars}{List *}{
+					This is a list of \file{Var} nodes defined in \file{primnodes.h} indicating a list of columns
+					by which the relations or the result of query is distributed.
+					If the distribution type is other than Hash or Modulo, this is ignored.
+					\file{Var} structure has no \XC-specific modification.
+	  }
+  \StructMemberTrailor
+  
+  \StructMemberHdr{RemoteQueryPath}
+	  \StructMember{path}{Path}{
+					\file{T_RemoteQueryPath} should be set as the \file{type} member of this structure.
+					No \XC-specific modification was made to \file{Path} structure.
+	  }
+	  \StructMember{rqpath_en}{ExecNodes}{List of datanodes to execute the query on.}
+	  \StructMember{leftpath}{RemoteQueryPath *}{Outer relation when this represents a join relation.}
+	  \StructMember{rightpath}{RemoteQueryPath *}{Inner relation when this represents a join relation.}
+	  \StructMember{jointype}{JoinType}{Join type. Defined in \file{nodes.h}.}
+	  \StructMember{join_restrictlist}{List *}{
+					Restrict list correspond to JOINs.
+					Effective only the rest of join information is available.
+	  }
+	  \StructMember{rqhas_unshippable_qual}{bool}{Indicates if there is at least one qual which cannot be shipped to the datanodes.}
+	  \StructMember{rqhas_temp_rel}{bool}{Indicates if at least one of the base relations involved in this path is a temporary table.}
+	  \StructMember{rqhas_unshippable_tlist}{bool}{Indicates if at least one target list entry is not completely shippable.}
+	  \StructMemberTrailor
+	  
+	  \StructMemberHdr{RemoteQueryState}
+	  \StructMember{ss}{ScanState}{
+					\file{ScanState} structure of vanilla \PG.
+					There is no \XC-specific modification to this structure.
+					\file{type} member of this structure has to be set to \file{T_RemoteQueryState}.
+	  }
+	  \StructMember{node_count}{int}{Total count of participating nodes.}
+	  \StructMember{connections}{PGXCNodeHandle **}{Datanode connections being combined.}
+	  \StructMember{conn_count}{int}{Count of active connections.}
+	  \StructMember{combine_type}{CombineType}{
+					Type of combining each datanode result.
+					Definition of \file{CombineType} is given in \file{pgxcplan.h} as follows:\\
+					\file{COMBINE_TYPE_NONE}: known that no row count.  Do not parse.\\
+					\file{COMBINE_TYPE_SUM}: Sum row counts.  In the case of distributed relation.\\
+					\file{COMBINE_TYPE_SAME}: All the counts should be the same.   In the case of replicated write.
+	  }
+	  \StructMember{command_complete_count}{int}{Count of received CommandComplete messages.}
+	  \StructMember{request_type}{RequestType}{
+					Type of the response from the datanode.
+					The enum \file{RequestType} is defined in \file{execRemote.h} as follows:\\
+					\file{REQUEST_TYPE_COMMAND}: OK or no row count response.\\
+					\file{REQUEST_TYPE_QUERY}: Row description response.\\
+					\file{REQUEST_TYPE_COPY_IN}: Copy In response.\\
+					\file{REQUEST_TYPE_COPY_OUT}: Copy Out response.
+	  }
+	  \StructMember{tuple_desc}{TupleDesc}{
+					Tuple descriptor of emitted tuples.
+					There is no \XC-specific modification to \file{TupleDesc} structure.
+	  }
+	  \StructMember{description_count}{int}{Count of received RowDescription messages.}
+	  \StructMember{copy_in_count}{int}{Count of received CopyIn messages.}
+	  \StructMember{copy_out_count}{int}{Count of received CopyOut messages.}
+	  \StructMember{errorCode}{char[5]}{Error code sent back to the client.}
+	  \StructMember{errorMessage}{char *}{Error message sent back to the client.}
+	  \StructMember{errorDetail}{char *}{Error detail sent back to the client.}
+	  \StructMember{currentRow}{RemoteDataRowData}{
+					Next data ro to be wrapped into a tuple.
+					Definition of this structure is given in \file{execRemote.h}.
+	  }
+	  \StructMember{rowBuffer}{List *}{
+					Buffer storing rows.
+					Used when the connection should be cleaned for reuse by other
+					remote query.
+	  }
+  \StructMemberTrailor
+  
+  \StructMemberHdr{RemoteQuery}
+	  \StructMember{scan}{Scan}{
+					\file{Scan} structure for this remote query.
+					\file{T_RemoteQuery} must be set to the node tag of this structure.
+	  }
+	  \StructMember{exec_direct_type}{ExecDirectType}{
+					Type of \file{EXECUTE DIRECT} if the remote query is execute direct.
+					\file{ExecDirectType} is an enum defined in \file{pgxcplan.h}.
+	  }
+	  \StructMember{combine_type}{CombineType}{See \file{RemoteQueryState} description for details.}
+	  \StructMember{read_only}{bool}{Indicates not to use 2PC when committing read only steps.}
+	  \StructMember{force_autocommit}{bool}{
+					Enforces autocommit.
+					Some commands like \file{VACUUM} require autocommit mode.
+	  }
+	  \StructMember{statement}{char *}{If specified, it is used as a parsed statement name on the remote node.}
+	  \StructMember{cursor}{char *}{If specified, it is used as a portal name on the remote node.}
+	  \StructMember{rq_num_params}{int}{Number of parameters present in the remote statement.}
+	  \StructMember{rq_param_types}{Oid}{Parameter types for the remote statement.}
+	  \StructMember{rq_params_internal}{bool}{Indicates to refer to the source data plan, as against user-supplied parameters.}
+	  \StructMember{exec_type}{RemoteQueryExecType}{
+					Indicates the type of nodes where this remote query should run.
+					\file{RemoteQueryExecType} is an enum defined in \file{pgxcplan.h}.
+					It can take one of \file{EXEC_ON_DATANODES}, \file{EXEC_ON_COORDS}, \file{EXEC_ON_ALL_NODES}, or \file{EXEC_ON_NONE}.
+	  }
+	  \StructMember{is_temp}{bool}{Indicates this remote node is based on a temporary objects.}
+	  \StructMember{rq_finalise_aggs}{bool}{Indicates that the aggregate should be finalized at the datanode.}
+	  \StructMember{rq_sortgroup_colno}{bool}{Indicates to use resno for sort group references instead of expressions.}
+	  \StructMember{remote_query}{Query *}{\file{Query} structure representing the query to be sent to the remote node.}
+	  \StructMember{base_tlist}{List *}{The target list representing the result of the query sent to the remote node.}
+	  \StructMember{coord_var_tlist}{List *}{Reference target list of \file{Vars} in the plan node on coordinator.}
+	  \StructMember{query_var_tlist}{List *}{Reference target list of \file{Vars} in the plan node on query.}
+	  \StructMember{has_row_marks}{bool}{Indicates if \file{SELECT} has \file{FOR UPDATE} or \file{FOR SHARE}.}
+	  \StructMember{rq_save_command_id}{bool}{Indicates to save the command ID used in some special cases.}
+	  \StructMember{rq_use_pk_for_rep_change}{bool}{Indicates if primary key or unique index is used to perform update/delete on a replicated table.}
+	  \StructMember{rq_max_param_num}{int}{Indicates the maximum number of parameters added in an delete operation on a replicated table.}
+	  \StructMemberTrailor
+	  
+	  \StructMemberHdr{SimpleSort}
+	  \StructMember{type}{NodeTag}{Value \file{T_SimpleSort} is used.}
+	  \StructMember{numCols}{int}{Number of sort-key columns.}
+	  \StructMember{sortColIdx}{AttrNumber}{Index of sort-key columns.}
+	  \StructMember{SortOperations}{Oid}{Oid if operators used to sort.}
+	  \StructMember{sortCollations}{Oid}{}
+	  \StructMember{nullsFirst}{Oid}{determine to make \file{FIRST} or \file{LAST} directions effective.}
+  \StructMemberTrailor
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:modifiednodes}Modified Nodes}
+
+  Table \ref{tab:modifiednodes} shows existing internal node structures with \XC-specific modification.
+  
+  \begin{table}[htp]
+	  \begin{center}
+	  \caption{\label{tab:modifiednodes}Existing Internal Node Structures with \XC~ Modification}\vspace{5pt}
+		  \begin{tabular}{llp{0.5\hsize}} \hline
+				Structure Name & Source File \footnote{Path is omitted if not ambiguous.} & Description\\ \hline
+				\file{AggState} & \file{execnodes.h} & Status of aggregate execution.\\
+				\file{AlterSeqStmt} & \file{parsenodes.h} & Represents \file{ALTER SEQUENCE} statement.\\
+				\file{CreateSeqStmt} & \file{parsenodes.h} & Represents \file{CREATE SEQUENCE} statement.\\
+				\file{CreateStmt} & \file{parsenodes.h} & Represents \file{CREATE} statement.\\
+				\file{EState} & \file{execnodes.h} & Master working state for an Executor invocation.\\
+				\file{IntoClause} & \file{primnodes.h} & Represents \file{INTO} clause used in \file{SELECT INTO},
+								   \file{CREATE TABLE AS} and \file{CREATE MATERIALIZED VIEW} commands.\\
+				\file{JunkFilter} & \file{execnodes.h} & Store junk attributes, an attribute in a tuple that is
+									needed only for storing intermediate information in the executor,
+									and does not belong in emitted tuples.\\
+				\file{ModifyTableState} & \file{execnodes.h} & Represent table modification status.\\
+				\file{PlannerInfo} & \file{relation.h} & Per-query information for planning/optimization\\
+				\file{Query} & \file{parsenodes.h} & Parsed statement.\\
+				\file{RangeTblEntry} & \file{parsenodes.h} & Relation or clause(s) representing a kind of
+										relation which can be materialized afterwords.\\
+				\file{TupleTableSlot} & \file{tuptable.h} & Tuples stored by the executor.\\
+				\hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+  
+  \AdditionalStructMemberHdr{AggState}
+	  \StructMember{skip_trans}{bool}{Indicate to skip transition step for aggregates.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{AlterSeqStmt}
+	  \StructMember{is_serial}{bool}{Indicate if this sequence is a part of SERIAL process.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{CreateSeqStmt}
+	  \StructMember{distributeby}{DistributeBy *}{Distribution to use, or NULL.}
+	  \StructMember{subcluster}{PGXCSubCluster *}{Subcluster of the table.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{EState}
+	  \StructMember{es_result_remoterel}{PlanState *}{Currently active remote relation.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{IntoClause}
+	  \StructMember{distributeby}{DistributeBy *}{Distribution to use, or NULL.}
+	  \StructMember{subcluster}{PGXCSubCluster *}{Subcluster of the table.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{JunkFilter}
+	  \StructMember{jf_xc_node_id}{AttrNumber}{Indicates nodeid when \file{jf_xc_wholerow} is used as ctid.}
+	  \StructMember{jf_xc_wholerow}{AttrNumber}{ctid or whole row, just like \file{jf_junkAttNo}.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{ModifyTableState}
+	  \StructMember{mt_remoterels}{PlanState **}{Remote query node per target.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{PlannerInfo}
+	  \StructMember{rs_alias_index}{int}{Used to build the alias reference.}
+	  \StructMember{xc_rowMarks}{List *}{List of \file{PlanRowMarks} of type
+		  			\file{ROW_MARK_EXCLUSIVE} and \file{ROW_MARK_SHARE}.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{Query}
+	  \StructMember{sql_statement}{char *}{Original statement.}
+	  \StructMember{is_local}{bool}{
+			Indicates to enforce query execution on local node.
+			This is used by \file{EXECUTE DIRECT}.
+	  }
+	  \StructMember{has_to_save_cmd_id}{bool}{
+			Indicates that command id has to be maintained.
+			This is used when a statement is divided into more than one statements to be performed.
+			For example, \file{INSERT SELECT} which inserts into a child by selecting from its parent,
+			or a \file{WITH} clause that updates a table in main query and inserts a row to the same
+			table in \file{WITH} clause.
+	  }
+  \StructMemberTrailor
+  
+  
+  \AdditionalStructMemberHdr{RangeTblEntry}
+	  \StructMember{relname}{char *}{Table name.}
+  \StructMemberTrailor
+  
+  \AdditionalStructMemberHdr{TupleTableSlot}
+	  \StructMember{tts_dataRow}{char *}{Tuple data in \file{DataRow} format.}
+	  \StructMember{tts_dataLen}{int}{Actual length of the data row.}
+	  \StructMember{tts_shouldFreeRow}{bool}{Indicates to free this \file{tts_dataRow}.}
+	  \StructMember{tts_attinmeta}{struct AttInMetadata *}{
+		  			Store info to extract values from
+		  			\file{DataRow} here.}
+	  \StructMember{tts_xcnodeoid}{Oid}{Oid of the node to fetch datarow.}
+  \StructMemberTrailor
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Additional structure used in nodes}
+
+  Table \ref{tab:newStruct} shows additional structure used in the nodes as described in
+  sections~\ref{sec:newnodes} and \ref{sec:modifiednodes}.
+  
+  
+  \begin{table}[htp]
+	  \begin{center}
+	  \caption{\label{tab:newStruct}Additional New Structures used in Nodes}\vspace{5pt}
+		  \begin{tabular}{llp{0.5\hsize}} \hline
+			\file{Structure Name} & Source File \footnote{Path is omitted if not ambiguous.}
+								 & Description\\ \hline
+			\file{PGXCSubCluster} & \file{primnodes.h}
+								 & Represents subcluster on which a table can be created .\\
+			\file{PGXCNodeHandle} & \file{pgxcnode.h}
+								 & Represent each node (coordinator or datanode) and status of
+								   I/O to it.\\
+			\file{RemoteDataRowData} & \file{execRemote.h}
+									& Represent DataRow message received from a remote node.\\
+			\hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+  
+  Details of them are as follows:
+  
+  \StructMemberHdr{PGXCSubCluster}
+	  \StructMember{type}{NodeTag}{\file{T_PGXCSubCluster} should be set.}
+	  \StructMember{clustertype}{PGXCSubClusterType}{
+					Indicates the type of \file{members}.
+					\file{SUBCLUSTER_NODE} is for individual nodes and \file{SUBCLUSTER_GROUP} is
+					for node group.
+	  }
+	  \StructMember{member}{List *}{List of nodes or node groups}
+  \StructMemberTrailor
+  
+  \StructMemberHdr{PGXCNodeHandle}
+	  \StructMember{nodeoid}{Oid}{Oid of the node.}
+	  \StructMember{sock}{int}{Connection file descriptor.}
+	  \StructMember{transaction_status}{char}{
+		  	Transaction state. \file{'I'} indicates initialized status.
+		  	\file{'E'} indicates error status.
+	  }
+	  \StructMember{state}{DNConnectionState}{
+			Connection status to remote node.
+			This type is an enum defined in \file{pgxcnode.h}.\\
+			\file{DN_CONNECTION_STATE_IDLE}: idle status.   Remote node is ready for query.\\
+			\file{DN_CONNECTION_STATE_QUERY}: query is sent and waiting for response.\\
+			\file{DN_CONNECTION_STATE_ERROR_FATAL}: fatal error.\\
+			\file{DN_CONNECTION_STATE_COPY_IN}: copy in state.\\
+			\file{DN_CONNECTION_STATE_COPY_OUT}: copy out state.
+	  }
+	  \StructMember{combiner}{RemoteQueryState}{Remote query state. See above for details.}
+	  \StructMember{have_row_desc}{bool}{For debug.}
+	  \StructMember{error}{char *}{Error message.}
+	  \StructMember{outBuffer}{char *}{Output buffer.}
+	  \StructMember{outSize}{size_t}{Output buffer size.}
+	  \StructMember{outEnd}{size_t}{Used size of the output buffer.}
+	  \StructMember{inBuffer}{char*}{Input buffer.}
+	  \StructMember{inSize}{size_t}{Input buffer size.}
+	  \StructMember{inStart}{size_t}{Index at the start of current input message.}
+	  \StructMember{inEnd}{size_t}{Index at the end of current input message.}
+	  \StructMember{inCursor}{size_t}{Cursor position of the current input message.}
+	  \StructMember{ck_resp_rollback}{RESP_ROLLBACK}{
+			Indicates response handling.
+			Description of the enum \file{RESP_ROLLBACK} is given in \file{pgxcnode.h}.\\
+			\file{RESP_ROLLBACK_IGNORE}: ignore response checking.\\
+			\file{RESP_ROLLBACK_CHECK}: check whether the response was ROLLBACK.\\
+			\file{RESP_ROLLBACK_RECEIVED}: response is ROLLBACK.\\
+			\file{RESP_ROLLBACK_NOT_RECEIVED}: response is NOT ROLLBACK.
+	  }
+  \StructMemberTrailor
+  
+  \StructMemberHdr{RemoteDataRowData}
+	  \StructMember{msg}{char *}{Last data row message.}
+	  \StructMember{msglen}{int}{Length of the data row message.}
+	  \StructMember{msgnode}{int}{Node number of the data row message.}
+  \StructMemberTrailor
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:queryExplain}Query Explanation}
+
+  To explain the built plan, \XC{} has to know how to convert \XC{} specific planner node into
+  human readable expression.
+  \XC{} specific planner nodes are shown in Table \ref{tab:newnodes} and \ref{tab:modifiednodes}.
+  \XC{} query explain is added handling two nodes; \file{RemoteQuery} and \file{ModifyTable}.
+  
+  Converting logic is implemented in \file{src/backend/commands/explain.c}.
+  We have no need to change the planner for explaining, what we have to do here is just formatting
+  the given planned statement tree.
+  \XC{} extended \file{ExplainNode()} function for \file{RemoteQuery} node, and modified it for
+  \file{ModifyTable} to support remote table modification.
+  \file{ExplainTargetRel()} is also extended for \file{RemoteQuery}.
+  
+  \XC{} introduced two options to EXPLAIN command.
+  One is \file{NODES}, the other is \file{NUM_NODES}.
+  Both options control whether the command displays involved nodes' information or not.
+  These options are interpreted in \file{ExplainQuery()}.
+  This change needless to touch the grammar.
+  Please note that these additional options are documented at present, although it is very useful
+  to build potable regression test suites.
+
+

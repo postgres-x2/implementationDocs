@@ -1,0 +1,599 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Chapter "Cluster Management"
+%
+% Description of cluster management SQL commands and related tables.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:clusterNodeInfo}Cluster Node}
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Cluster management statement}
+
+  To manage the cluster node, there are \texttt{CREATE NODE}, \texttt{ALTER NODE}, and
+  \texttt{DROP NODE} statements.
+  
+  \XC{} added the symtax to implement these cluster management statement.
+  The grammar is defined in \file{src/backend/parser/gram.y}.
+  Additional changes were made to
+  support these statements.
+  The changes are listed in Table \ref{tab:chgnodemgmtstmt}.
+  
+  {
+	  \footnotesize
+	  \begin{table}[htp]
+		  \begin{center}
+			  \caption{\label{tab:chgnodemgmtstmt}Changes to support node management statements}
+			  \begin{tabular}{llp{0.4\hsize}} \hline
+				  File & Function name & Description \\ \hline
+				  \file{utility.c} & \file{standard_ProcessUtility()} & {\raggedright
+							Changed to recognize \file{CreateNodeStmt}, \file{AlterNodeStmt} and \file{DropNodeStmt}
+							type statements as utility statements and call appropriate functions. }\\ 
+				  \file{copyfunc.c} & \file{CopyObject()} & {\raggedright
+							Added support for \file{CreateNodeStmt}, \file{AlterNodeStmt} and \file{DropNodeStmt}.}\\
+				  \file{equalfunc.c} & \file{equal()} & {\raggedright
+							Added support for \file{CreateNodeStmt}, \file{AlterNodeStmt} and \file{DropNodeStmt}.}\\
+				  \file{utility.c} & \file{IsStmtAllowedInLockMode()} & {\raggedright
+							Allowed to execute \file{CreateNodeStmt}, \file{AlterNodeStmt} and \file{DropNodeStmt} in lock mode.}\\
+				  \file{utility.c} & \file{CreateCommandTag()} & {\raggedright
+							Added support for \file{CreateNodeStmt}, \file{AlterNodeStmt} and \file{DropNodeStmt}.}\\
+				  \hline
+			  \end{tabular}
+		  \end{center}
+	  \end{table}
+  }
+  
+  Changes are simple: add new case branches to \file{switch}-\file{case} block for node tags and write a code for them.
+  
+  % Program Listing ----------------------------------------
+  \begin{lstlisting}
+case T_CheckPointStmt:
+	retval = (void *) makeNode(CheckPointStmt);
+	break;
+#ifdef PGXC
+case T_BarrierStmt:
+	retval = _copyBarrierStmt(from);
+	break;
+case T_AlterNodeStmt:
+	retval = _copyAlterNodeStmt(from);
+	break;
+case T_CreateNodeStmt:
+  \end{lstlisting}
+  % End program listing ----------------------------------
+  
+  The implementation of cluster management statement functions is described later.
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsection{Node information catalog}
+
+  Node management statements manipulates the system catalog \file{pgxc_node}.
+  The definition of the system catalog is given below.
+  You can find the column in the catalog corresponding to the options of node management statements.
+  
+  % Prigram Listing ----------------------------------------
+  \begin{lstlisting}
+                         Table "pg_catalog.pgxc_node"
+      Column      |  Type   | Modifiers | Storage | Stats target | Description 
+------------------+---------+-----------+---------+--------------+-------------
+ node_name        | name    | not null  | plain   |              | 
+ node_type        | "char"  | not null  | plain   |              | 
+ node_port        | integer | not null  | plain   |              | 
+ node_host        | name    | not null  | plain   |              | 
+ nodeis_primary   | boolean | not null  | plain   |              | 
+ nodeis_preferred | boolean | not null  | plain   |              | 
+ node_id          | integer | not null  | plain   |              | 
+Indexes:
+    "pgxc_node_id_index" UNIQUE, btree (node_id), tablespace "pg_global"
+    "pgxc_node_name_index" UNIQUE, btree (node_name), tablespace "pg_global"
+    "pgxc_node_oid_index" UNIQUE, btree (oid), tablespace "pg_global"
+Has OIDs: yes
+Tablespace: "pg_global"
+  \end{lstlisting}
+  % End program listing ----------------------------------
+  
+  This system catalog is defined in \file{src/include/catalog/pgxc_node.h},
+  which is created by \file{initdb} through the BKI file.
+  To get the node's attribute easily, utility functions listed in Table
+  \ref{tab:nodeattrfunc} are implemented in \file{src/backend/utils/cache/lsyscache.c}.
+  For the more high level use, please see the following \textbf{Node Manager} subsection.
+  
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{tab:nodeattrfunc}Node attribute query functions}
+		  \begin{tabular}{lp{0.5\hsize}} \hline
+			  Function name & Description \\ \hline
+			  \file{get_pgxc_nodeoid()} & Get the node OID by node name. \\
+			  \file{get_pgxc_nodename()} & Get the node name by OID. \\
+			  \file{get_pgxc_node_id()} & Get the node ID by OID. \\
+			  \file{get_pgxc_nodetype()} & Get the node type by OID. \\
+			  \file{get_pgxc_nodehost()} & Get the node host by OID. \\
+			  \file{get_pgxc_nodeport()} & Get the node port by OID. \\
+			  \file{is_pgxc_nodepreferred()} & Get whether the node is preferred by OID. \\
+			  \file{is_pgxc_nodeprimary()} & Get whether the node is primary by OID. \\
+			  \hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Node manager}
+
+  The node manager is implemented in \file{nodemgr.c}.
+  This subsection describes the APIs of the node manager.
+  
+  The node manager consists of two types functions as follows:
+
+  \begin{itemize}
+	  \item Gets node information from the shared memory where the information in
+			\file{pgxc_node} catalog are copied.
+	  \item Manipulates node information in the \file{pgxc_node} catalog.
+  \end{itemize}
+  
+  Please note that information in the shared memory and the system catalog are not
+  always synchronized.
+  To update information in the shared memory, a program need to call specific API.
+  The pooler uses the shared memory only and both information are used by the
+  database/tablespace size calculator and the advisory lock.
+  
+  \FUNC{NodeTablesShmemInit()}	%--------------------------------------
+  
+    Creates or attaches the shared memory for the node table.
+    
+    This function creates or attaches the shared memory for the node table.
+    The shared memory for the node table has fixed size.
+    It means that the maximum size of the memory is allocated when it is initialized.
+    
+    This function is called in the initialization sequence of the process.
+    It is needed both for \file{postmaster} and other various processes like backends etc.
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{CreateSharedMemoryAndSemaphores}{ipci.c}{
+		  Used in creating and attaching various shared memories.
+		}\\ \hline
+    \FuncRefTrailor
+  
+  \FUNC{NodeTablesShmemSize()}	%--------------------------------------
+  
+    Calcurates the size of shared memory for the node table.
+    
+    This function calcurates the maximum memory size required for the node talbe.
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{CreateSharedMemoryAndSemaphores}{ipci.c}{
+		  Used in estimating the size of the shared memory required in total.
+		}\\ \hline
+    \FuncRefTrailor
+  
+  \FUNC{PgxcNodeListAndCount()}	%--------------------------------------
+  
+    Updates node definitions in the shared memory tables with the system catalog data.
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{InitMultinodeExecutor}{pgxcnode.c}{
+		  Called prior to calling \file{PgxcNodeGetOids()}
+		}\\
+		\FuncRef{PoolManagerCheckConnectionInfo}{poolmgr.c}{
+		  Called before request to check the pooled connection.
+		}\\
+		\FuncRef{PoolManagerReloadConnectionInfo}{poolmgr.c}{
+		  Called before request to reload the connection info.
+		}\\
+		\hline
+    \FuncRefTrailor
+  
+  \FUNC{PgxcNodeGetOids()}	%--------------------------------------
+  
+    Builds a list of OIDs of coordinators and data nodes.
+    
+    This function creates a list of Oids of Coordinators and Datanodes currently exist in the shared memory,
+	as well as number of Coordinators and Datanodes.
+    
+    This is called from the following codes (excluding call from pooler):
+    
+    \FuncRefHdr
+		\FuncRef{pgxc_tablespace_size}{dbsize.c}{
+		  Used in calcurating tablespace size
+		}\\
+		\FuncRef{pgxc_database_size}{dbsize.c}{
+		  Used in calcurating database size
+		}\\
+		\FuncRef{pgxc_advisory_lock}{lockfuncs.c}{
+		  Used in inquiring advisory locks
+		}\\
+		\hline
+    \FuncRefTrailor
+  
+  \FUNC{PgxcNodeGetDefinition()}	%--------------------------------------
+  
+    Find node definition in the shared memory node table by oid.
+    
+    This function is called from the pooler.
+  
+  \FUNC{PgxcNodeAlter()}	%--------------------------------------
+  
+    Alter a PGXC node.
+    
+    This function is utility function which directly processes \texttt{ALTER NODE} statement as follows:
+    
+	\begin{enumerate}
+		\item Opens the heap using \file{open_heap()},
+	    \item Obtains a copy of current tuple of the target node from the system cache using \file{SearchSysCacheCopy1()},
+		\item Updates it using \file{heap_modify_tuple()} and \file{simple_heap_update()},
+		\item Updates the index of the system catalog using \file{CatalogUpdateIndexes()},
+		\item Closes the heap using \file{close_heap()}.
+	\end{enumerate}
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{standard_ProcessUtility}{utility.c}{
+		  Used to process the {\tt AlterNodeStmt} type statement
+		}\\ \hline
+    \FuncRefTrailor
+  
+  \FUNC{PgxcNodeCreate()}	%--------------------------------------
+  
+    Adds a PGXC node.
+    
+    This function is a utility function which directly handles \texttt{CREATE NODE} statement as follows:
+    
+	\begin{enumerate}
+		\item Generates new node id,
+		\item Opens the heap using \file{open_heap()},
+		\item Creates new tuple for the target node using \file{heap_from_tuple()},
+		\item Insert it using \file{simple_heap_insert()},
+		\item Updates index of the catalog using \file{CatalogUpdateIndexes()} and
+		\item Closes the heap using \file{close_heap()}.
+	\end{enumerate}
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{standard_ProcessUtility}{utility.c}{
+		  Used to process the \file{CreateNodeStmt} type statement
+		}\\ \hline
+    \FuncRefTrailor
+  
+  \FUNC{PgxcNodeRemove()}	%--------------------------------------
+  
+    Remove a PGXC node
+    
+    This function is a utility function which directly processes \texttt{DROP NODE} statement as follows:
+    
+	\begin{enumerate}
+		\item Opens the heap using \file{open_heap()},
+		\item Obtains current tuple for the target node from the system cache using \file{SearchSysCache1()},
+		\item Delete it using \file{simple_heap_delete()},
+		\item Release the cached tuple using \file{ReleaseSysCache()()}
+		\item and Closes heap using \file{close_heap()}.
+	\end{enumerate}
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{standard_ProcessUtility}{utility.c}{
+		  Used to process the \file{DropNodeStmt} type statement
+		}\\ \hline
+    \FuncRefTrailor
+
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:nodeGroup}Node Group}
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Node group management statement}
+
+  To manage the cluster node group, there are \texttt{CREATE NODE GROUP} and
+  \texttt{DROP NODE GROUP} statements.
+  
+  \XC{} extends the grammar to implement these statement. The grammar is defined in
+  \file{src/backend/parser/gram.y}. And some changes made to support these statements.
+  The changes are listed in Table \ref{tab:chggroupmgmtstmt}.
+  
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{tab:chggroupmgmtstmt}Changes to support node group management statements}
+		  \begin{tabular}{llp{0.5\hsize}} \hline
+			  File & Function name & Description \\ \hline
+			  \file{utility.c} & \file{standard\_ProcessUtility()} & {\raggedright
+				  Changed to recognize the \file{CreateGroupStmt} and \file{DropGroupStmt} type statement
+				  as a utility function and call appropriate function.} \\
+			  \file{copyfunc.c} & \file{CopyObject()} & {\raggedright
+				  Added support for \file{CreateGroupStmt} and \file{DropGroupStmt}.} \\
+			  \file{equalfunc.c} & \file{equal()} & {\raggedright
+				  Added support for \file{CreateGroupStmt} and \file{DropGroupStmt}.} \\
+			  \file{utility.c} & \file{CreateCommandTag()} & {\raggedright
+				  Added support for \file{CreateGroupStmt} and \file{DropGroupStmt}.} \\
+			  \hline
+			  \end{tabular}
+	  \end{center}
+  \end{table}
+  
+  The implementation of the statement function is described later.
+
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Group information catalog}
+
+  These statements manipulates the system catalog \file{pgxc_group} internally.
+  The definition of the table follows.
+  You can find the column in the catalog corresponding to the options of the group
+  management statement.
+  
+  % Program Listing -----------------------------------------------------------
+  \begin{lstlisting}
+                        Table "pg_catalog.pgxc_group"
+    Column     |   Type    | Modifiers | Storage | Stats target | Description 
+---------------+-----------+-----------+---------+--------------+-------------
+ group_name    | name      | not null  | plain   |              | 
+ group_members | oidvector | not null  | plain   |              | 
+Indexes:
+    "pgxc_group_name_index" UNIQUE, btree (group_name), tablespace "pg_global"
+    "pgxc_group_oid" UNIQUE, btree (oid), tablespace "pg_global"
+Has OIDs: yes
+Tablespace: "pg_global"
+  \end{lstlisting}
+  % End program  Listing -------------------------------------------------------
+  
+  This catalog is defined in \file{src/include/catalog/pgxc_group.h},
+  which are created by \file{initdb} through the BKI file.
+  To get the node's attribute easily, utility functions listed in Table~
+  \ref{tab:groupattrfunc} are implemented in \file{rc/backend/utils/cache/lsyscache.c}.
+  For the more high level use, please see the following \textbf{Group Manager} subsection.
+  
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{tab:groupattrfunc}Node group attribute query functions}
+		  \begin{tabular}{lp{0.5\hsize}} \hline
+			  Function name & Description \\ \hline
+			  \file{get_pgxc_groupoid()} & Get the group OID by group name. \\
+			  \file{get_pgxc_groupmembers()} & Get node OIDs of the group members by group OID. \\
+			  \hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsection{Group manager}
+
+  The group manager is implemented in \file{groupmgr.c}. This subsection describes
+  APIs of the group manager.
+  
+  The group manager has following function:
+
+  \begin{itemize}
+  \item Manipulate node information in the \file{pgxc_group} catalog.
+  \end{itemize}
+  
+  
+  \FUNC{PgxcGroupCreate()}	%--------------------------------------
+  
+    Creates a PGXC node group.
+    
+    This function is a utility function which handles \texttt{CREATE NODE GROUP} statement directly as follows:
+    
+	\begin{enumerate}
+		\item Builds a OID list of new group member node and converts the list to oid vector with \file{buildoidvector()},
+		\item Opens the heap with \file{open_heap()},
+		\item Creates new tuple for the target group with \file{heap_from_tuple()},
+		\item Insert it with \file{simple_heap_insert()},
+		\item Updates index of the catalog with \file{CatalogUpdateIndexes()},
+	    \item and Closes heap with \file{close_heap()}.
+	\end{enumerate}
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{standard_ProcessUtility}{utility.c}{
+		  Used to process the \file{CreateGroupStmt} type statement
+		}\\ \hline
+    \FuncRefTrailor
+  
+  \FUNC{PgxcGroupRemove()}	%--------------------------------------
+  
+    Removes a PGXC node group.
+    
+    This function is a utility function which handles \texttt{DROP NODEnGROUP} statement directly as follows:
+    
+	\begin{enumerate}
+		\item Opens the heap with \file{open_heap()},
+		\item Obtains current tuple for the target node from the system cache with \file{SearchSysCache1()},
+		\item Delete it with \file{simple_heap_delete()},
+		\item Release the cached tuple with \file{ReleaseSysCache()}
+		\item Closes heap with \file{close_heap()}.
+	\end{enumerate}
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+  	  \FuncRef{standard_ProcessUtility}{utility.c}{
+  		Used to process the \file{DropGrouptmt} type statement
+  	  }\\
+  	  \hline
+    \FuncRefTrailor
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:extraTableAttr}Table Distribution Attributes}
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Table distribution statement}
+
+  \XC{} stores extended table information around distribution, it is given in the table definition
+  like ``\texttt{CREATE TABLE} .. \texttt{DISTRIBUTED BY} .. \texttt{NODE} ..''.
+  Extended statements are listed below.
+  
+  \begin{itemize}
+	  \item \texttt{CREATE TABLE}
+	  \item \texttt{CREATE TABLE AS}
+	  \item \texttt{ALTER TABLE}
+  \end{itemize}
+  
+  To implement these extension, \XC{} extends the grammar.
+  The grammar is defined in \file{src/backend/parser/gram.y}.
+  
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{tab:}Changes of statements manipulates distribution information}
+		  \scriptsize
+		  \begin{tabular}{lllp{0.45\hsize}} \hline
+			  Statement & File name & Function name & Description \\ \hline
+			  \texttt{CREATE TABLE} & \file{tablecmds.c} & \file{DefineRelation()} &
+			  		Changed to create \file{pgxc_class} entry using parsed tree node. \\
+			  \texttt{CREATE TABLE AS} & - & - & Same as \texttt{CREATE TABLE} \\
+			  \texttt{ALTER TABLE} & \file{tablecmd.c} & \file{AlterTableGetLockLevel()} &
+			  		Set lock level for \file{AT_DistributeBy}, \file{AT_SubCluster}, \file{AT_AddNodeList}
+					and \file{AT_DeleteNodeList} to exclusive \\
+			  & \texttt{tablecmd.c} & \file{ATExecCmd()} &
+			  		Adds support for \file{AT_DistributeBy}, \file{AT_SubCluster}, \file{AT_AddNodeList}
+					and \file{AT_DeleteNodeList} \\
+			  & & \file{ATPrepCmd()} &
+			  		Adds support for \file{AT_DistributeBy}, \file{AT_SubCluster}, \file{AT_AddNodeList}
+					and \file{AT_DeleteNodeList} \\
+			  & \file{tablecmd.c} & \file{ATController()} &
+			  		Changed to build redistribution commands and execute it. \\
+			  \texttt{DROP TABLE} & \file{dependency.c}& \file{doDeletion()} &
+			  		Added support for deletion of \file{OCLASS_PGXC_CALSS} object \\
+			  \hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+  
+  
+  
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Table distribution information catalog}
+  
+  These table distribution/redistribution statements manipulates the system catalog \file{pgxc_class} internally.
+  The definition of the table follows. You can find the column in the catalog corresponding
+  to the options of the extended statement.
+  
+  % Program listing -----------------------------------------------------------
+  \begin{lstlisting}
+                         Table "pg_catalog.pgxc_class"
+     Column      |   Type    | Modifiers | Storage | Stats target | Description 
+-----------------+-----------+-----------+---------+--------------+-------------
+ pcrelid         | oid       | not null  | plain   |              | 
+ pclocatortype   | "char"    | not null  | plain   |              | 
+ pcattnum        | smallint  | not null  | plain   |              | 
+ pchashalgorithm | smallint  | not null  | plain   |              | 
+ pchashbuckets   | smallint  | not null  | plain   |              | 
+ nodeoids        | oidvector | not null  | plain   |              | 
+Indexes:
+    "pgxc_class_pcrelid_index" UNIQUE, btree (pcrelid)
+Has OIDs: no
+  \end{lstlisting}
+  % End program listing -------------------------------------------------------
+  
+  This catalog is defined in \file{src/include/catalog/pgxc_class.h}, 
+  which are created by \file{initdb} through the BKI file.
+  To get the node's attribute easily, utility functions listed in Table \ref{tab:xcclsattrfunc}
+  are implemented in \file{src/backend/utils/cache/lsyscache.c}.
+  Other high level functions are described in next section.
+  
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{tab:xcclsattrfunc}Extended class attribute query functions}
+		  \begin{tabular}{lp{0.5\hsize}} \hline
+			  Function name & Description \\ \hline
+			  \file{get_pgxc_classnodes()} & Gets the target node OIDs by table OID. \\
+			  \hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{High-level functions for distributed table}
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{\texttt{pgxc\_class.c}}
+
+  This module supplies functions to manipulate \file{pgxc_class}.
+  
+  \FUNC{PgxcClassCreate()}	%--------------------------------------
+  
+    Creates a \file{pgxc_class} entry.
+    
+    This function manipulates \file{pgxc_class} system catalog information.
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{AddRelationDistribution}{heap.c}{
+		  Used in adding to \file{pgxc_class} table
+		}\\ \hline
+    \FuncRefTrailor
+  
+  \FUNC{PgxcClassAlter()}	%--------------------------------------
+  
+    Modifies a \file{pgxc_class} entry with given data.
+    
+    This function manipulates \file{pgxc_class} system catalog information.
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{AtExecDistributeBy}{tablecmds.c}{
+		  \vspace{3pt}
+		}\\
+		\FuncRef{AtExecSubCluster}{tablecmds.c}{
+		  \vspace{3pt}
+		}\\
+		\FuncRef{AtExecAddNode}{tablecmds.c}{
+		  \vspace{3pt}
+		}\\
+		\FuncRef{AtExecDeleteNode}{tablecmds.c}{
+		  \vspace{3pt}
+		}\\
+		\hline
+    \FuncRefTrailor
+  
+  \FUNC{RemovePgxcClass()}	%--------------------------------------
+  
+    Removes extended PGXC information.
+    
+    This function manipulates \file{pgxc_class} system  catalog information.
+    
+    This is called from the following codes:
+    
+    \FuncRefHdr
+		\FuncRef{doDeletion}{dependency.c}{
+		  Used in removing \file{pgxc_class} table
+		}\\ \hline
+    \FuncRefTrailor
+  
+
+

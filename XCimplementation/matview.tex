@@ -1,0 +1,155 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Materialized View handling description
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Just like usual views, materialized view is created at coordinator level, not datanode level,
+  and is replicated among all the coordinators.
+  When materialized view is created, originating coordinator collects all the rows and
+  replicate them.
+  
+  When materialized view is refreshed, originating coordinator corrects all the rows,
+  drops all the existing rows and then replicates new ones.
+  
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Creating Materialized View}
+  
+  Materialized view is created by \texttt{CREATE MATERIALIZED VIEW} statement.
+  Internally, this statement is handled as a variant of \texttt{CREATE TABLE AS} statement and
+  handled by \file{ExecCreateTableAs()} in \file{createas.c}.
+  
+  The following is how this is handled in \file{utility.c}.
+
+  % Materialized view DDL handling in XC ----------------------------------
+  \lstset{tabsize=4, xleftmargin=20pt, basicstyle=\ttfamily\scriptsize, breaklines=true}
+  \begin{lstlisting}[frame=single, tabsize=4, language=C]
+            case T_CreateTableAsStmt:
+                ExecCreateTableAs((CreateTableAsStmt *) parsetree,
+                                  queryString, params, completionTag);
+#ifdef PGXC
+                /* Send CREATE MATERIALIZED VIEW command to all coordinators. */
+                Assert(((CreateTableAsStmt *) parsetree)->relkind == OBJECT_MATVIEW);
+                if (!((CreateTableAsStmt *) parsetree)->into->skipData && !IsConnFromCoord())
+                    pgxc_send_matview_data(((CreateTableAsStmt *) parsetree)->into->rel,
+                                            queryString);
+                else
+                    ExecUtilityStmtOnNodes(queryString, NULL, sentToRemote, false, EXEC_ON_COORDS, false);
+
+#endif /* PGXC */
+                break;
+  \end{lstlisting}
+  % End program listing ------------------------------------------------------
+
+  Please note that \XC{} does not support \texttt{CREATE TABLE AS} statement and the above
+  code is just for \texttt{CREATE MATERIALIZED VIEW} statement at present.
+  
+  Piece of the code at the parser (\file{gram.y}) is as follows:
+
+  % Program Listing ----------------------------------------------------------
+  \begin{lstlisting}[frame=single, tabsize=4, language=C]
+/*****************************************************************************
+ *
+ *      QUERY :
+ *              CREATE MATERIALIZED VIEW relname AS SelectStmt
+ *
+ *****************************************************************************/
+
+CreateMatViewStmt:
+        CREATE OptNoLog MATERIALIZED VIEW create_mv_target AS SelectStmt opt_with_data
+                {
+                    CreateTableAsStmt *ctas = makeNode(CreateTableAsStmt);
+                    ctas->query = $7;
+                    ctas->into = $5;
+                    ctas->relkind = OBJECT_MATVIEW;
+                    ctas->is_select_into = false;
+                    /* cram additional flags into the IntoClause */
+                    $5->rel->relpersistence = $2;
+                    $5->skipData = !($8);
+                    $$ = (Node *) ctas;
+                }
+        ;
+  \end{lstlisting}
+  % End Program Listing ------------------------------------------------------
+
+  You will see that parse tree for \texttt{CREATE MATERIALIZED VIEW} statement is the same as
+  \texttt{CREATE TABLE AS} statement.
+  
+  \texttt{CREATE TABLE AS} statement is blocked at present at \file{gram.y}.
+  Therefore, \file{CreateTableAsStmt} node is used only for \texttt{CREATE MATERIALIZED VIEW}
+  at present.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Refreshing Materialized View}
+
+  Contents of materialized views are refreshed by \texttt{REFRESH MATERIALIZED VIEW} statement.
+  In \XC, materialized view refreshment causes all the old data are replaced with all the
+  present data.
+  
+  This is handled by \PG~ backend function \file{ExecRefreshMatView()}.
+  Its code is almost the same as vanilla \PG.
+  Only one difference is if it is from another coordinator, that is, if new row data comes
+  from originating coordinator, the data is handled using \texttt{COPY} protocol, not by
+  running queries.
+  
+  Code snip in \file{ExecRefreshMatView()} is as follows:
+
+% Code snip in Materialized View DDl handling.
+\begin{lstlisting}[frame=single, tabsize=4, language=C]
+#ifdef PGXC
+    /*
+	 * If the REFRESH command was received from other coordinator, it will also send
+	 * the data to be filled in the materialized view, using COPY protocol.
+	*/
+    if (IsConnFromCoord())
+	{
+		Assert(IS_PGXC_COORDINATOR);
+		pgxc_fill_matview_by_copy(dest, stmt->skipData, 0, NULL);
+	}
+    else
+#endif /* PGXC */
+\end{lstlisting}
+
+  At the originating coordinator, \texttt{REFRESH MATERIALIZED VIEW} statement is handled locally
+  first, and then the rows are propagated to other coordinators by using
+  \file{pgxc_send_matview_data()} function.
+  
+  Implementation of two \XC-specific functions is as follows:
+
+%- - - - - - - Func - - - - - - - - - - - - - - - - - - - - - - - - -
+
+\FUNC{pgxc_send_matview_data()}
+
+  This function is implemented in \file{matview.c}.
+  It  opens specified materialized view, collect all the rows and send them to other
+  coordinators using \texttt{COPY} command protocol.
+
+
+%- - - - - - - Func - - - - - - - - - - - - - - - - - - - - - - - - -
+
+\FUNC{pgxc_fill_matview_by_copy()}
+
+  This function is implemented in \file{matview.c}.
+  It receives table rows sent by \file{pgxc_send_matview_data()} and stores them in
+  the target materialized view.
+
+
+%- - - - - - - Subsubsection - - - - - - - - - - - - - - - - - - - - - - - - -
+
+\subsection{Dropping Materialized View}
+
+  It is handled by \file{ExecDropStmt()} function in \file{utility.c}.
+  Additions in \XC{} is as follows:
+  
+  \begin{itemize}
+	  \item Before removing local materialized view, \XC{} checks objects to be dropped.
+	  		In materialized view, we don't have this yet.
+	  \item After materialized view was removed locally, and if it is done in originating
+	  		coordinator, then the DDL is propagated to other coordinators using
+			\file{ExecUtilityStmtOnNodes()}, implemented in \file{utility.c}.
+  \end{itemize}
+  

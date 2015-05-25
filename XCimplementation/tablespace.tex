@@ -1,0 +1,99 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Tablespace Description
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This section describes \XC's tablespace implementation.
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Creating Tablespace}
+
+  To create a tablespace, we need to specify an absolute directory path.
+  In \XC, the tablespace need to be propagated to all the nodes, hence the directory path too.
+  To maintain this syntax, \XC{} uses all this absolute path in all the nodes.
+  
+  This sounds reasonable if each node is configured in different server.
+  There's no resource conflict.
+  However, standard \XC{} configuration advises to install both coordinator and datanode
+  at the same server and we need to resolve this conflict.
+  
+  Simple rule introduced here is to qualify tablespace directory path with the node name
+  which does not conflict.
+  It is safe enough because node name has to be unique throughout \XC{} cluster.
+  
+  The following shows additional code to do this in the function \file{CreateTableSpace()} in
+  \file{tablespace.c}.
+
+% Tablespace directory is qualified with the node name.
+\lstset{tabsize=8, xleftmargin=20pt, basicstyle=\ttfamily\scriptsize, breaklines=true}
+\begin{lstlisting}[frame=single, tabsize=4, language=C]
+    /*
+     * Check that location isn't too long. Remember that we're going to append
+     * 'PG_XXX/<dboid>/<relid>.<nnn>'.  FYI, we never actually reference the
+     * whole path, but mkdir() uses the first two parts.
+     */
+    if (strlen(location) + 1 + strlen(TABLESPACE_VERSION_DIRECTORY) + 1 +
+#ifdef PGXC
+        /*
+         * In Postgres-XC, node name is added in the tablespace folder name to
+         * insure unique names for nodes sharing the same server.
+         * So real format is PG_XXX_<nodename>/<dboid>/<relid>.<nnn>''
+         */
+        strlen(PGXCNodeName) + 1 +
+#endif
+        OIDCHARS + 1 + OIDCHARS + 1 + OIDCHARS > MAXPGPATH)
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
+                 errmsg("tablespace location \"%s\" is too long",
+                        location)));
+
+\end{lstlisting}
+
+  Node name is added to each tablespace directory so that it does not conflict if coordinator and
+  datanode are configured in the same server and even if more than one coordinator or datanode is
+  configured in the same saver.
+  
+  Before WAL records are written for this operation, \file{CreateTableSpace()} registers its
+  cleanup function like:
+
+ % Callback registration for additional DDL error handling to deal with
+ % ones at remote nodes.
+\begin{lstlisting}[frame=single, tabsize=4, language=C]
+#ifdef PGXC
+    /*
+     * Even if we have succeeded, the transaction can be aborted because of
+     * failure on other nodes. So register for cleanup.
+     */
+    set_dbcleanup_callback(createtbspc_abort_callback,
+                          &tablespaceoid, sizeof(tablespaceoid));
+#endif
+\end{lstlisting}
+
+  \file{createtbspc_abort_callback()} is implemented in \file{tablespace.c()} as well, where
+  created subdirectory under the tablespace path is removed for cleanup.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Modifying Tablespace}
+
+  \file{AlterTableSpaceOptions()} is the handler of \texttt{ALTER TABLESPACE} statement.
+  
+  This can be performed within transaction block and there's no \XC-specific modification
+  to this implementation.
+  
+  \subsection{Dropping Tablespace}
+  
+  \texttt{DROP TABLESPACE} cannot run within a transaction block.
+  
+  \file{DropTableSpace()} is the handler of this statement and there's no
+  \XC-specific modification
+  \footnote{
+  	The reporter is not sure if this implementation is reasonable.
+  	If \texttt{DROP TABLESPACE} fails in any of the nodes while propagating,
+  	the operation has to be cleaned up, if vanilla \PG{} is doing so.
+  	It may need more in-depth analysis of DROP TABLE failure handling in vanilla \PG.
+  }.
+  

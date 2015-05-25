@@ -1,0 +1,32 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% XC-specific function description
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  This chapter describes additional session and system functions for \XC.
+  
+  \FUNC{xc_pool_reload()}
+  
+      This function refreshes cached information of \file{pgxc_node} catalog and cleans up
+	  pooled connections managed by the pooler.
+  
+  \FUNC{is_committed(transaction_id)}
+  
+      This function reoprts if a transaction with given GXID is committed or not.
+      Returned information is just local to the issued node.
+      This is intended to be used in \file{pgxc_clean} or other utilities to cleanup and
+	  recover commit status of any two-phase commit transactions.
+  
+  \FUNC{pgxc_version()}
+  
+      This function returns \XC~ version.
+  
+  \FUNC{pgxc_pool_check()}
+  
+      This function checks if connection data cached in the pooler is consistent
+	  with \file{pgxc_node}.
+  
+  \FUNC{pgxc_lock_for_backup()}
+  
+      This function locks the cluster for taking backup of the node to be exported to the new
+	  node being added.

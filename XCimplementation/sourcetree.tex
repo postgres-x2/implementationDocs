@@ -1,0 +1,125 @@
+%
+% Chapter "Postgres-XC source code tree structure"
+%
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:additionalDir}Additional source directories}
+
+  \XC{} source file tree structure follows \PG.
+  Additional directories are shown in table \ref{tab:dirlist}.
+  
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{tab:dirlist}Additional source directories for \XC}
+		  \begin{tabular}{p{0.4\hsize}p{0.55\hsize}}\hline
+				Directory&Description\\ \hline
+				\file{contrib/pgxc_clean} & {\raggedright Additional module to cleanup errors.}\\
+				\file{contrib/pgxc_ctl} & {\raggedright Additional module for \XC{} cluster configuration and operation.}\\
+				\file{contrib/pgxc_ddl} & {\raggedright Additional module to propagate DDL execution to other nodes. }\\
+				\file{contrib/pgxc_monitor} & {\raggedright Additional module to monitor if each node is running. }\\
+				\file{doc-xc} & {\raggedright \XC~reference document.
+								See chapter \ref{chap:documentation} at page \pageref{chap:documentation} for details.}\\
+				\file{src/backend/pgxc/barrier} & {\raggedright Barrier module.   See chapter \ref{chap:architecture} for details.}\\
+				\file{src/backend/pgxc/copy} & {\raggedright Copy command module.}\\
+				\file{src/backend/pgxc/locator} & {\raggedright Module to locate target datanode of given row and table.}\\
+				\file{src/backend/pgxc/nodemgr} & {\raggedright Module to read/write \file{pgxc_node} catalog.}\\
+				\file{src/backend/pgxc/pool} & {\raggedright Connection pooling module between a coordinator and other nodes.}\\
+				\file{src/backend/pgxc/xc_maintenance_mode} & {\raggedright Module to handle \file{xc_maintenance_mode} GUC parameter.}\\
+				\file{src/backend/pgxc} & {\raggedright \XC~specific modules for coordinator/datanode which cannot be classified into existing directory.}\\
+				\file{src/bin/gtm_ctl} & {\raggedright GTM and GTM proxy launcher.}\\
+				\file{src/gtm} & {\raggedright Global transaction manager}\\
+				\file{src/include/gtm} & {\raggedright Header files for gtm.}\\
+				\file{src/include/pgxc} & {\raggedright Additional header files which cannot be classified into existing directory.}\\
+				\file{src/pgxc/tools/makesgml} & {\raggedright SGML generator.  See \ref{chap:documentation} for details.}\\
+				\file{src/pgxc} & {\raggedright Commonly used \XC-specific modules.}\\ \hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:additionalFile}Additional source file for \XC}
+
+  Additional \XC~ source files at existing \PG~source directory are shown in table \ref{tab:filelist}.
+  Files sown in section\ref{chap:sourceTree}.\ref{sec:additionalDir} are not listed in this table.
+  
+  \begin{table}[htp]
+	  \begin{center}
+		  \caption{\label{tab:filelist}Additional source files for \XC}
+		  \begin{tabular}{p{0.5\hsize}p{0.45\hsize}}\hline
+				File&Description\\ \hline
+				\file{src/backend/access/rmgrdesc/pgxcdesc.c} & Additional resource manager routines specific to \XC.\\
+				\file{src/backend/access/transam/gtm.c} & Global transaction manager at coordinator/datanode side.\\
+				\file{src/backend/catalog/pgxc_class.c} & \file{pgxc_class} system catalog handler.\\
+				\file{src/backend/optimizer/path/pgxcpath.c} & \XC~additional module to find possible remote query paths.\\
+				\file{src/backend/optimizer/plan/pgxcplan.c} & \XC~additional module of distributed query planner.\\
+				\file{src/backend/optimizer/util/pgxcship.c} & \XC~additional module to evaluate expression shippability to remote nodes.\\
+				\file{src/include/catalog/pgxc_class.h} & Definition of \file{pgxc_class} system catalog.\\
+				\file{src/include/catalog/pgxc_group.h} & Definition of \file{pgxc_group} system catalog.\\
+				\file{src/include/catalog/pgxc_node.h} & Definition of \file{pgxc_node} system catalog.\\
+				\file{src/include/optimizer/pgxcplan.h} & Additional definition for the planner.\\
+				\file{src/include/optimizer/pgxcship.h} & Additional definition for evaluation of expression shippability to datanodes.\\
+				\hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:existingFiles}Modification to existing files}
+
+  Modification of existing \PG~source files are made as follows:
+  
+  \begin{itemize}
+	  \item For *{\tt.c} and *{\tt.h} files, \XC-specific lines are indicated by C-pre-compiler
+	  		directive using {\tt PGXC} label.  An example is given in Figure \ref{fig:PGXCDirective}.
+	  \item For *{\tt.l} and *{\tt.y} files, flex and bison does not provide directive as used in C
+	  		source file.  Modifications were done directly to these files.
+	  \item For document files, all existing sgml files are renamed into sgmlin files to include
+	  		directives to indicate \XC~specific description.
+	  		See Chapter \ref{chap:documentation} at page \pageref{chap:documentation}for details.
+  \end{itemize}
+  
+  \begin{figure}
+	  % Source listing ----------------------------------------------
+	  \begin{lstlisting}[frame=single]
+#ifdef PGXC
+    while ((c = getopt_long(argc, argv,
+					        "ih:knvp:dSNc:j:Crs:t:T:U:lf:D:F:M:",
+							long_options, &optindex)) != -1)
+#else
+    while ((c = getopt_long(argc, argv,
+					        "ih:nvp:dqSNc:j:Crs:t:T:U:lf:D:F:M:",
+							long_options, &optindex)) != -1)
+#endif
+	  \end{lstlisting}
+	  % End source listing ------------------------------------------
+	  \begin{center}
+		  \caption{\label{fig:PGXCDirective}Example of C source code modification}
+	  \end{center}
+  \end{figure}
+  
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:numOfLines}Number of lines of the source}
+
+    Source code size of \XC{} was estimated by counting lines of additional souce code of
+    \XC{} to corresponding \PG{} source by using \texttt{diff}.
+  
+    In counting the lines of the code, the following directories and files are excluded:
+
+    \begin{itemize}
+  		\item Copy from \PG{}, such as libpq at gtm.
+		\item Reference documents.
+		\item Regression test source/expected result.
+	\end{itemize}
+
+	\XC{} source code commit is \file{REL1_2_STABLE}, while \PG{} source code commit
+	is \file{f5f21315d25ffcbfe7c6a3fa6ffaad54d31bcde0}.
+
+	As the result, additional source code lines from correponding \PG{} is about
+	ninety-thousand lines.
+

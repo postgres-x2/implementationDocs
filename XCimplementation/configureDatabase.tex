@@ -1,0 +1,185 @@
+%
+% Chapter "Configure Database"
+%
+% Description of initialization and configuring database.
+%
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:initdb}Changes in initdb}
+
+  Essentially, we have two extension/modification to \file{initdb} utility:
+  
+  \begin{itemize}
+	  \item Setting up its own node name to \file{pgxc_node} catalog.
+	  \item Vacuum freeze every template and intial database: \file{template0}, \file{template1} and
+			\file{postgres}.
+  \end{itemize}
+  
+  Other extensions in the catalog, built-in functions and other embedded database objects specific to
+  \XC{} are in catalog initialization and initdb does not need specific change for this.
+  
+  The background of the need of complete vacuum freeze comes from dynamic node addition.
+  
+  In original initdb, it comsumes some XIDs locally.
+  Although initdb cannot run with GTM so far, it was not an issue if all the nodes are
+  initialized at the same time.
+  When GTM works for the first time, it can begin with a GXID larger than the last XID
+  value consumed by initdb.
+  \file{-x} option worked to deal with this situation.
+  
+  When a new node should be added dynamically, current GXID could be of any value.
+  It can be just before GXID wraps around!
+  To enable new node (initialized with \file{initdb}) to be added to running cluster,
+  it was essential to vacuum freeze the database completeley before joining \XC{} clusetr
+  so that it can begin with any GXID value.
+  
+  Following shows inddividual extension to \file{initdb}.
+  Please note that \file{initdb} source file is essentially one.
+  \file{findtimezone.c} and \file{po} directory are common to \XC{} which does not need any
+  modification.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{New option}
+
+  \file{--nodename} option specifies its node name.
+  \file{initdb} itself does not require if the new node should be a coordinator or a datanode.
+  It is specified with \file{-Z} option of \file{pg_ctl} utility, although it is not a good idea
+  to switch between coordinator and datanode while the node is already in use.
+  
+  You will find this change in \file{main()} and \file{setup_config()} functions.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Vacuum freeze}
+
+  Vacuum freeze feature is implemented as \file{vacuumfreeze()} function.
+  This is done by running postgres binary against new initialized database cluster and issue
+  \texttt{VACUUM FREEZE} command.
+
+  Please note that postgres binary need to run with local XID in this case because GTM might
+  not have configured and running yet.
+  For this purpose, \file{initdb} runs \file{postgres} binary against the new database
+  with ``\file{--single}'' and ``\file{--localxid}'' options.
+  Former option specifies \file{postgres} to run as a single user mode and the latter
+  specifies to run with local XID, which is \XC-specific extension to \file{postgres}
+  binary.
+
+  \file{vacuumfreeze()} function is called from \file{main()} function.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:pgconf}Extension of postgresql.conf}
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{List of additional GUC parameters}
+
+  All the GUC parameters specific to \XC{} will be found at \file{guc.c} module.
+  
+  \GUC{enable_remotejoin}{boolean}{true}
+  
+    Enables join push-down to remote node.
+    This should be turned on all the time unless you are debugging \XC{} planner or executor.
+  
+  \GUC{enable_remotejoin}{boolean}{true}
+  
+    Enables fast query shipping.
+    This should be turned on all the time unless you are debugging \XC{} planner or executor.
+  
+  \GUC{enable_remotegroup}{boolean}{true}
+  
+    Enables \texttt{GROUP BY} pushdown.
+    This shoudl be turned on all the time unless you are debugging \XC{} planner or executor.
+  
+  \GUC{enable_remotesort}{boolean}{true}
+  
+    Enables \texttt{ORDER BY} pushdonw.
+    This should be turned on all the time unless you are debugging \XC{} planner or executor.
+  
+  \GUC{enable_remotelimit}{boolean}{true}
+  
+    Enables \texttt{LIMIT} clause pushdown.
+    This should be turned on all the time unless you are debugging \XC{} planner or executor.
+  
+  \GUC{gtm_backup_barrier}{boolean}{false}
+  
+    Controls if GTM backs up restart point for each \texttt{BARRIER}.
+  
+  \GUC{persistent_datanode_connections}{boolean}{false}
+  
+    If on, the pooler will not release the acquired connec tion.
+  
+  \GUC{enforce_two_phase_commit}{boolean}{true}
+  
+    This is mainly for the compatibility and consistency in the regression test.
+    If set to \file{false}, implicit two phase commit will not be used.
+  
+  \GUC{xc_maintenance_mode}{boolean}{false}
+  
+    When \file{true}, it enables \texttt{EXECUTE DIRECT} to perform write operation.
+    This cannot be turned on in \texttt{postgresql.conf}.
+    Only a superuser can tur this on using \texttt{SET} command.
+    It is intended to be used to maintain cluster-wide data consistency.
+    It is used in \file{pgxc_clean}.
+  
+  \GUC{require_replicated_table_pkey}{boolean}{true}
+  
+    This congtrols replicated table update.
+    If no primary key or other unique constraint is not available in replicated table update and
+	needs ctid for update, this option make such statment to fail, when turned on.
+    To maintain replicated table consisiten, you should not turn this off unless you fully
+	understand its outcome and you intend to do so.
+  
+  \GUC{min_pool_size}{integer}{1}
+  
+    Specifies minimum number of pooled connection to datanodes.
+  
+  \GUC{max_pool_size}{integer}{100}
+  
+    Specifies maximum number of pooled connection to datanodes.
+  
+  \GUC{pooler_port}{integer}{6667}
+  
+    Port number for pooler to listen.
+  
+  \GUC{gtm_port}{integer}{6666}
+  
+    Port number of GTM or GTM proxy to connect to.
+    If the node (coordinator or datanode) is connecting to GTM directly, specify GTM port number.
+    If conneted through GTM proxy, specify GTM proxy port number.
+  
+  \GUC{max_datanodes}{integer}{16}
+  
+    Maximum number of datanodes.
+  
+  \GUC{max_coordinators}{integer}{16}
+  
+    Maximum number of coordinators.
+  
+  \GUC{gtm_host}{string}{none}
+  
+    Host name of GTM or GTM proxy connecting.
+  
+  \GUC{pgxc_node_name}{string}{none}
+  
+    GTM node name.
+  
+  \GUC{remotetype}{enum}{``application''}
+  
+    Not used at present.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Additional functions to handle GUC parameters}
+
+  \file{check_pgxc_maintenance_mode()} function was added to disable \file{xc_maintenance_mode}
+  GUC turned on at \file{postgresql.conf} file.
+  This function checks if the parameter value was set to \file{true} in \file{postgresql.conf}.

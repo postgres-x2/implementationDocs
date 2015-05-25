@@ -1,0 +1,102 @@
+\relax 
+\@writefile{toc}{\contentsline {section}{\numberline {1.1}What is Postgres-XC?}{4}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.1}{\ignorespaces Postgres-XC's synchronous multi-master configuration}}{4}}
+\newlabel{archfig:1}{{1.1}{4}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.2}Postgres-XC's Goal}{5}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.3}How To Scale Out Both Reads And Writes?}{6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.1}Parallelism In Postgres-XC}{6}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.2}Star Schema}{6}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.2}{\ignorespaces Postgres-XC{} can handle statements in parallel in multiple datanodes.}}{7}}
+\newlabel{archfig:2}{{1.2}{7}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.3}{\ignorespaces Typical star schema (See above for the source)}}{8}}
+\newlabel{archfig:3}{{1.3}{8}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.4}{\ignorespaces Write scalability in Postgres-XC}}{9}}
+\newlabel{archfig:4}{{1.4}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.3}Replicated table update: Primary node}{9}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.5}{\ignorespaces Decomposing big statement into smaller shards}}{10}}
+\newlabel{archfig:5}{{1.5}{10}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.6}{\ignorespaces Statement can be optimized more if \texttt  {WHERE} clause determines the target}}{11}}
+\newlabel{archfig:5_1}{{1.6}{11}}
+\newlabel{sec:ddlPropagation}{{1.3.4}{11}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.4}DDL propagation}{11}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.5}System catalog for shard and replica}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.6}Limitations coming from sharding and replication}{12}}
+\newlabel{archsec:3_5}{{1.3.7}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.7}Postgres-XC's Global Transaction Management}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3.8}Statement based replication and sharding}{13}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.4}Postgres-XC{} Key Components}{13}}
+\newlabel{arch:4_1}{{1.4.1}{13}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.1}GTM (Global Transaction Manager)}{13}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.7}{\ignorespaces Postgres-XC{} Key Components}}{14}}
+\newlabel{archfig:6}{{1.7}{14}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.8}{\ignorespaces Interaction between Postgres-XC{} key components}}{14}}
+\newlabel{archfig:7}{{1.8}{14}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.4.1.1}How PostgreSQL Manages Transactions}{15}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.4.1.2}Making Transaction Management Global}{16}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.9}{\ignorespaces Outline of Postgres-XC's Global Transaction Management}}{17}}
+\newlabel{archfig:8}{{1.9}{17}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.2}Coordinator}{18}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.3}Datanode}{18}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.10}{\ignorespaces Interaction among Postgres-XC{} components}}{19}}
+\newlabel{archfig:9}{{1.10}{19}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4.4}Interaction Between Key Components}{19}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.11}{\ignorespaces Sequence of Global Transaction Control}}{20}}
+\newlabel{archfig:10}{{1.11}{20}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.5}Isn't GTM A Performance Bottleneck}{21}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.12}{\ignorespaces GTM Configuration without GTM Proxy}}{21}}
+\newlabel{archfig:11}{{1.12}{21}}
+\newlabel{archsec:5_1}{{1.5.1}{22}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.1}GTM Implementation without proxy}{22}}
+\newlabel{arch:5_2}{{1.5.2}{22}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.5.2}GTM Proxy Implementation}{22}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.13}{\ignorespaces GTM Configuration with GTM Proxy}}{23}}
+\newlabel{archfig:12}{{1.13}{23}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.6}Performance And Stability}{24}}
+\newlabel{arch:dbt1}{{1.6.1}{24}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.6.1}DBT-1-Based Benchmark}{24}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.14}{\ignorespaces DBT-1-Based Table Structure Used in the Benchmark}}{25}}
+\newlabel{archfig:15}{{1.14}{25}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.7}Test Result}{25}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.15}{\ignorespaces Postgres-XC{} Test Environment}}{26}}
+\newlabel{archfig:16}{{1.15}{26}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.7.1}Throughput and Scalability}{27}}
+\@writefile{lot}{\contentsline {table}{\numberline {1.1}{\ignorespaces  Summary of measurement (Full load)}}{27}}
+\newlabel{archtab:1}{{1.1}{27}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.16}{\ignorespaces Postgres-XC{} Full Load Throughput}}{28}}
+\newlabel{archfig:18}{{1.16}{28}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.17}{\ignorespaces Postgres-XC{} 90\% Load Throughput in One Week Test}}{29}}
+\newlabel{archfig:17}{{1.17}{29}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.7.2}CPU Consumption}{29}}
+\@writefile{lot}{\contentsline {table}{\numberline {1.2}{\ignorespaces  Postgres-XC{} CPU Usage}}{29}}
+\newlabel{tab:ArchCPU}{{1.2}{29}}
+\newlabel{Arch_Net_Workload}{{1.7.3}{29}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.7.3}Network Workload}{29}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1.18}{\ignorespaces Network Data Transfer Rate of Each Server}}{30}}
+\newlabel{Archfig:13_2}{{1.18}{30}}
+\@writefile{lot}{\contentsline {table}{\numberline {1.3}{\ignorespaces  Postgres-XC{} Network Workload}}{30}}
+\newlabel{Archtab:2}{{1.3}{30}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.7.4}Connection Handling}{31}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.7.5}High-Availability Consideration}{31}}
+\@setckpt{architecture}{
+\setcounter{page}{32}
+\setcounter{equation}{0}
+\setcounter{enumi}{2}
+\setcounter{enumii}{0}
+\setcounter{enumiii}{0}
+\setcounter{enumiv}{0}
+\setcounter{footnote}{18}
+\setcounter{mpfootnote}{0}
+\setcounter{part}{1}
+\setcounter{chapter}{1}
+\setcounter{section}{7}
+\setcounter{subsection}{5}
+\setcounter{subsubsection}{0}
+\setcounter{paragraph}{0}
+\setcounter{subparagraph}{0}
+\setcounter{figure}{18}
+\setcounter{table}{3}
+\setcounter{LT@tables}{0}
+\setcounter{LT@chunks}{0}
+\setcounter{lstnumber}{1}
+\setcounter{lstlisting}{0}
+}

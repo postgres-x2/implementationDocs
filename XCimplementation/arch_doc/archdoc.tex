@@ -1,0 +1,95 @@
+%
+% Cover for Postgres-XC architecture document.
+%
+
+\documentclass[10pt,a4paper]{article}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{array, multirow, longtable}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{txfonts}
+\usepackage{url}
+
+% For source code listings.
+
+\usepackage{listings}
+\lstset{language=c,
+%  basicstyle=\ttfamily\scriptsize,
+  basicstyle=\ttfamily\footnotesize,
+%  commentstyle=\textit,
+  commentstyle=\ttfamily,
+%  classoffset=1,
+  keywordstyle=\bfseries,
+  frame=tRBl,
+  framesep=5pt,
+  showstringspaces=false,
+%  numbers=left,
+%  stepnumber=1,
+%  numberstyle=\tiny,
+  tabsize=4
+}
+
+%
+% ===========================================
+%    Version
+%
+\newcommand{\ThisVersion}{Version~0.8}
+\newcommand{\ReleaseDate}{July.~31$^{st}$, 2014}
+
+% ============================================
+%    Page Format
+%
+%\addtolength{\textwidth}{1.3in}
+\addtolength{\textwidth}{1.0in}
+\setlength{\topmargin}{0in}
+\addtolength{\textheight}{0.5in}
+\setlength{\oddsidemargin}{0.5in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{9pt}
+%
+% ==== Header ==================
+%
+\pagestyle{fancy} \fancyhf{}
+\chead{\ThisVersion\quad\ReleaseDate}
+\cfoot{Page~\thepage}
+
+%
+% ===========================================
+%    Commonly used terms
+
+\newcommand{\XC}{Postgres-XC}
+\newcommand{\PG}{PostgreSQL}
+\newcommand{\NY}{(Not implemented yet)}
+\newcommand{\myjob}{Support Service of Distributed DBMS Evolvement Strategy Planning}
+
+%
+% Chapter/section, etc.  This section must exist in other file which includes archcontents.tex
+% file.
+%
+\newcommand{\CHAP}[1]{\chapter{#1}}
+\newcommand{\SEC}[1]{\section{#1}}
+\newcommand{\SUBSEC}[1]{\subsection{#1}}
+
+\newcommand{\ArchFig}{}
+
+
+% ============================================
+%    Title, etc.
+%
+\title{\XC~ Architecture Document}
+\date{\ReleaseDate{}}
+\author{Koichi Suzuki \and Postgres-XC Development Group}
+%
+% ============================================
+
+\begin{document}
+
+\maketitle
+
+\newpage
+\tableofcontents
+\newpage
+
+\input{archcontents}
+
+\end{document}

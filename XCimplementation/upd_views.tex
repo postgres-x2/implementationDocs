@@ -1,0 +1,15 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Automatic Updatable View description
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  An issue to support automatic updatable views is determining if a statement is
+  updating distribution key, which is not allowed in \XC.
+  
+  Code changed a bit to handle this in view update.
+  
+  When a statement is rewritten which updates an updatable view, the result may
+  include all the columns including distribution column, which is not updating anyway.
+  
+  The change determines this more strictly to allow such case.

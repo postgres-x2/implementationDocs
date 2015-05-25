@@ -1,0 +1,145 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Chapter "Regression".
+%
+% Description of additional regression test for Postgres-XC.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+  This chapter describes changes to regression test.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{General Changes}
+
+  Most of the statements in the regression tests are used as is, or with minimum modification.
+  General modification for \XC{} is as follows:
+  
+  \begin{itemize}
+	  \item No \texttt{DISTRIBUTE BY} clause was given to \texttt{CREATE TABLE} or \texttt{ALTER TABLE}
+	  		statement, if the first column is allowd as the distribution column.
+	  \item If the first column is not allowd as the distribution column and another column
+	  		is found suitable, \texttt{DISTRIBUTE BY HASH(}\textit{colname}\texttt{)}
+			clause is added.
+	  \item If no column is suitable for the distribution column, such table was defined as
+	  		replicated table using \texttt{DISTRIBUTE BY REPLICATION}.
+	  \item Because order of rows of \texttt{SELECT} statement or \texttt{RETURNING} clause depends upon
+	  		the order of execution among datanodes, \texttt{ORDER BY} clause was added to make this
+			order reproductive.
+	  \item To make \texttt{EXPLAIN} result portable, \texttt{NODES OFF} and
+			\texttt{NUM\_NODES OFF} options were added to make test result independent from
+			the number of nodes and their names.
+  \end{itemize}
+  
+  For specific test purpose, some tables in existing \PG{} regression test are created as
+  replicated or round-robin distribution.
+  
+  Example of additional use of \texttt{ORDER BY} clause in \file{join.sql} is shown below.
+
+  % Source listing -----------------
+  \lstset{tabsize=4, xleftmargin=20pt, basicstyle=\ttfamily\small, breaklines=true}
+  \begin{lstlisting}[frame=single]
+ 184 -- Outer joins
+ 185 -- Note that OUTER is a noise word
+ 186 --
+ 187 
+ 188 SELECT '' AS "xxx", *
+ 189   FROM J1_TBL LEFT OUTER JOIN J2_TBL USING (i)
+ 190   ORDER BY i, k, t;
+ 191 
+ 192 SELECT '' AS "xxx", *
+ 193   FROM J1_TBL LEFT JOIN J2_TBL USING (i)
+ 194   ORDER BY i, k, t;
+ 195 
+ 196 SELECT '' AS "xxx", *
+ 197   FROM J1_TBL RIGHT OUTER JOIN J2_TBL USING (i)
+ 198   ORDER BY i, j, k, t;
+  \end{lstlisting}
+
+  Example of additional option use in \texttt{EXPLAIN} in \file{join.sql} is shown below.
+
+  \lstset{tabsize=4, xleftmargin=20pt, basicstyle=\ttfamily\small, breaklines=true}
+  \begin{lstlisting}[frame=single]
+ 705 --
+ 706 -- test case where a PlaceHolderVar is propagated into a subquery
+ 707 --
+ 708 
+ 709 explain (num_nodes off, nodes off, costs off)
+ 710 select * from
+ 711   int8_tbl t1 left join
+ 712   (select q1 as x, 42 as y from int8_tbl t2) ss
+ 713   on t1.q2 = ss.x
+ 714 where
+ 715   1 = (select 1 from int8_tbl t3 where ss.y is not null limit 1)
+ 716 order by 1,2;
+ 717 
+ 718 select * from
+ 719   int8_tbl t1 left join
+ 720   (select q1 as x, 42 as y from int8_tbl t2) ss
+ 721   on t1.q2 = ss.x
+ 722 where
+ 723   1 = (select 1 from int8_tbl t3 where ss.y is not null limit 1)
+ 724 order by 1,2;
+  \end{lstlisting}
+    
+  Please note that \texttt{ORDER BY} clause is given only to the subsequent \texttt{SELECT} statement
+  because regression test needs to test the plan without \texttt{ORDER BY} close while subsequent
+  \texttt{SELECT} statement needs to produce portable result.
+
+  Please also not that \texttt{COSTS OFF} option in \texttt{EXPLAIN} statements are from vanilla
+  \PG{} regression test to make explain result portable too.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{Additional Test for \XC}
+
+  Regression test prefixed with \file{xc_} is \XC-specific regression test.
+  
+  Table~ \ref{tab:xcRegression} describes each test.
+  
+  \begin{table}[htp]
+	  \begin{center}
+	  \caption{\label{tab:xcRegression}\XC-specific Regression Test}
+		  \begin{tabular}{lp{0.7\hsize}} \hline
+			  Test Name & Description \\ \hline
+			  \file{xc_alter_table} & Checks \XC-specific behavior of \texttt{ALTER TABLE} statement,
+			  						   such as dropping distribution column is not allowed.\\
+			  \file{xc_constraints} & Checks constraint shippability in \XC{} for tables with
+			  						  different distribution strategies.\\
+			  \file{xc_create_function} & Defines a couple of function used by other \XC-specific
+			  							   regression tests.\\
+			  \file{xc_distkey} & Tests all the supported data types are working as distribution key.
+			  					  Also verifies that comparison with a constant for equality is
+								  optimized.\\
+			  \file{xc_for_update} & Test of \texttt{FOR UPDATE} support in \XC.\\
+			  \file{xc_FQS} & Test if fast query shipping works correctly in various distribution
+			  				  strategy and statements.\\
+			  \file{xc_FQS_join} & Dedicated test for join fast query shipping.\\
+			  \file{xc_groupby} & Test of \texttt{GROUP BY} pushdown and cross node operation for
+			  					  the combination of distributed and replicated tables.\\
+			  \file{xc_having} & Tests \texttt{HAVING} clause handling for various combination of
+			  					 table distribution.\\
+			  \file{xc_limit} & Tests \texttt{LIMIT} and \texttt{OFFSET} clause push down.\\
+			  \file{xc_misc} & Various feature test including plpgsql functions.\\
+			  \file{xc_node} & Tests \XC{} node management statements.\\
+			  \file{xc_params} & Tests non-simple variables (record types without \%rowtype descriptor) in
+			  					 SQL statements inside a plpgsql function.\\
+			  \file{xc_prepared_xacts} & Tests prepared transactions are working as expected.
+			  							  Tests it is not prepared if a transaction is read only.\\
+			  \file{xc_remote} & Tests \XC{} remote queries are working.  It is done disabling fast
+			  					 query shipping to see standard planner works correctly.\\
+			  \file{xc_returning} & Specific \texttt{RETURNING} clause test.\\
+			  \file{xc_sequence} & Specific sequence test, including checking callback mechanisms
+			  					   on GTM.\\
+			  \file{xc_sort} & Test merge sort optimization in \XC.  This works to fetch ordered data
+			  				   from datanodes and merge them at a coordinator.\\
+			  \file{xc_temp} & Test temporary object behavior.\\
+			  \file{xc_triggers} & Trigger test for various table distribution and trigger functions.\\
+			  \file{xc_trigship} & Dedicated test for shippable and non-shippable trigger functions.\\
+			  \hline
+		  \end{tabular}
+	  \end{center}
+  \end{table}

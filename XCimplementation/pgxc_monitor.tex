@@ -1,0 +1,35 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% pgxc_monitor module description
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  {\tt pgxc\_monitor} is \XC{} utility to check if specified node is running.
+  
+  Reference document will be found at
+  \url{http://postgres-xc.sourceforge.net/docs/1_2_1/pgxcmonitor.html}.
+  
+  Its source code is located at \file{contrib/pgxc_monitor}.
+  
+  General description how to monitor each component is given below.
+  Please note that \file{pgxc_monitor} does not include retry if it couldn't determine
+  the target is running.
+  Applications should do it.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Monitoring GTM and GTM Proxy}
+
+  It is performed by connecting to specified GTM and GTM proxy using GTM client library
+  function \file{PQconnectGTM()}.
+  It determines that specified GTM or GTM Proxy is running if connection is established.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Monitoring Coordinator and Datanode}
+
+  It is performed by issuing ``\texttt{SELECT 1;}'' SQL statement through \file{psql}.
+
+

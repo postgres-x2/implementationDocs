@@ -1,0 +1,388 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Backend Transaction Management
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%========= SECTION SECTION ===================================================
+
+\section{Transaction Management at coordinator/datanode backends}
+
+  Each coordinator/datanode backend needs to connect to GTM to obtain Global Transaction
+  Id (\texttt{GXID}) and global snapshot.
+  \file{gtm.c} module in \file{src/backend/access/transam} takes care of connection and
+  communication between each backend and GTM.
+  
+  This section describes functions defined in \file{gtm.c} and other dedicated transaction
+  handling related to GTM in coordinator/datanode backend processes.
+  
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{\texttt{gtm.c} module}
+  
+  \file{gtm.c} module handles connection and communication from coordinator/datanode
+  backend and gtm/gtm\_proxy.
+  
+  Functions defined in this module are as follows:
+  
+  \FUNC{IsGTMConnected()}
+  
+      This function checks if connection to GTM is alive.
+	  This is called from the following code:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{AtEOXact_GlobalTxn()}{xact.c}{
+			Used to determine what transaction ID should be used at the end of the
+			transaction.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  
+  \FUNC{CheckConnection()}
+  
+      This function checks if a connection to GTM has been established.
+	  If not, it establishes a connection to GTM.
+      
+      This is a static function and is used only in \file{gtm.c} locally.
+  
+  \FUNC{InitGTM()}
+  
+      This function establishes a connection to GTM 
+      and is used only within \file{gtm.c} at present.
+  
+  \FUNC{CloseGTM()}
+  
+      This function closes a connection to GTM
+	  This is called from the following code:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{PGXCNodeCleanAndRelease()}{execRemote.c}{
+			Called when the backend is ending.
+		  }\\ \hline
+      \FuncRefTrailor
+      
+      This function is also called within \file{gtm.c} module internally.
+  
+  \FUNC{BeginTranGTM()}
+  
+      This function informs GTM of the start of a new transaction and obtains
+      global transaction ID (\texttt{GXID}).
+      
+      This function is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{GetNewTransactionId()}{varsup.c}{
+			Called to obtain global transaction ID.
+		  }\\
+		  \FuncRef{GetAuxilliaryTransactionId()}{xact.c}{
+			Used to set auxilliaryTransactionId entry to CurrentTransactionState.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{BeginTranAutovacuumGTM()}
+  
+      This function is similar to \file{BeginTranGTM()} but only for autovacuum process.
+      GXID for autovacuum process does not appear in the global snapshot.
+      
+      This function is called from the following codes:
+      
+      \FuncRefHdr
+		  \FuncRef{GetNewTransactionId()}{varsup.c}{
+			Called when obtaining XID for autovacuum process.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{CommitTranGTM()}
+  
+      This function tells GTM the specified transaction is committed and sets
+      current transaction ID to invalid value.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{AtEOXact\_GlobalTxn()}{xact.c}{
+			Called at the end of global transaction.
+			It is called only when it is needed to close the transaction on the GTM
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{CommitPreparedTranGTM()}
+  
+      This function tells GTM to commit a prepared transaction.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{AtEOXact_GlobalTxn()}{xact.c}{
+			Used to mark the end of global transaction.
+		  }\\
+		  \FuncRef{FinishRemotePreparedTransaction()}{execRemote.c}{
+			Used to finish prepared transaction at remote nodes.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{RollbackTranGTM()}
+  
+      This function tells GTM the specified transaction is aborted and
+      sets current transaction ID to invalid value.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{AtEOXact_GlobalTxn()}{xact.c}{
+			Called to mark the end of global transaction.
+		  }\\
+		  \FuncRef{FinishRemotePreparedTransaction()}{execRemote.c}{
+			Called to finish prepared transaction at remote nodes.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{StartPreparedTranGTM()}
+  
+      This function tells GTM that prepare transaction commands starts with remote nodes.
+      
+      This is called from the following codes:
+      
+      \FuncRefHdr
+		  \FuncRef{PreAbort_Remote()}{execRemote.c}{
+			Called to abort remote truncations.
+		  }\\
+		  \FuncRef{PostPrepare_Remote()}{execRemote.c}{
+			Called in post-prepare handling in remote nodes.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{PrepareTranGTM()}
+  
+      This function tells GTM that prepare transaction commands was successful.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{PreAbort_Remote()}{execRemote.c}{
+			Called at re-abort handling.
+		  }\\
+		  \FuncRef{PostPrepare_Remote()}{execRemte.c}{
+			Called at post-prepare handling.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{GetGIDDataGTM()}
+  
+      This function obtains GTM internal information of fresh GXID, GXID of the prepared
+	  transaction, and datanode/coordinator node list involved in the prepare.
+      
+      This is for the future use.
+  
+  \FUNC{GetSnapshotGTM()}
+  
+      This function obtains global snapshot from GTM.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{GetSnapshotDataDataNode()}{procarray.c}{
+			Called to get snapshot data for datanode.
+		  }\\
+		  \FuncRef{GetSnapshotDataCoordinator()}{procarray.c}{
+			Called to get snapshot data for coordinator.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{CreateSequenceGTM()}
+  
+      This function creates a sequence on GTM.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{DefineSequence()}{sequence.c}{
+			Called in creating sequence.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{AlterSequenceGTM()}
+  
+      This function alters a sequence on GTM.
+      
+      This is called from the following code:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{AlterSequence()}{sequence.c}{
+			Called to modify the definition of a sequence.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{GetNextValGTM()}
+  
+      This function gets the next sequence value.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+      \FuncRef{nextval\_internal()}{sequence.c}{
+      	Called to get the next value of the sequence.
+      }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{SetValGTM()}
+  
+      This functions sets the value of the sequence.
+      
+      This is called form the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{do_setval()}{sequence.c}{
+		  This is called in handling 2 and 3 argument forms of {\tt SETVAL}.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{DropSequenceGTM()}
+  
+      This function drops sequence depending on the key type.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{drop_sequence_cb()}{sequence.c}{
+			Called in a callback of sequence drop.
+		  }\\
+		  \FuncRef{dropdb()}{dbcommands.c}{
+			Called in dropping a database.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{RenameSequenceGTM()}
+  
+      This function renames sequence on GTM.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{RenameRelationInternal()}{tablecmds.c}{
+			Called in changing the name of a relation.
+		  }\\
+		  \FuncRef{AlterTableNamespaceInternal()}{tablecmds.c}{
+			This is called in relocating a table or materialized view to another namespace.
+		  }\\
+		  \FuncRef{AlterSeqNamespaces()}{tablecmds.c}{
+			This is called to move all {\tt SERIAL} column sequences of the specified relation
+			to another namespace.
+		  }\\
+		  \FuncRef{rename_sequence_cb()}{sequence.c}{
+			Called in sequence rename callback.
+		  }\\
+		  \FuncRef{doRename()}{dependency.c}{
+			Called in renaming the given object.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{RegisterGTM()}
+  
+      This function registers the specified node to GTM.
+      Connection for registering is used just once the closed.
+      
+      This is called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{sigusr1_handler()}{postmaster.c}{
+			Called in handling signal conditions from child processes.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{UnregisterGTM()}
+  
+      This function unregisters the given node from GTM.
+      Connection for registering is used just once the closed.
+      
+      This is called form the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{pmdie()}{postmaster.c}{
+			Called in a signal handler to handle various postmaster signals.
+		  }\\
+		  \FuncRef{sigusr1_handler()}{postmaster.c}{
+			Called in handling signal conditions from child processes.
+		  }\\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{ReportBarrierGTM()}
+  
+      This function reports barrier to GTM.
+      This is used to backup GTM restart point for given barrier id.
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{RequestBarrier()}{barrier.c}{
+			Called in handling \texttt{CREATE BARRIER} statement.
+		  }\\ \hline
+      \FuncRefTrailor
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{\texttt{xact.c} module}
+
+  This module has \XC-specific functions as follows:
+  
+  \FUNC{RegisterTransactionLocalNode()}
+  
+      Marks if the local node has done some write activity.
+      
+      This is called form the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{ExecRemoteUtility()}{execRemote.c}{}\vspace{-10pt} \\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{ForgetTransactionLocalNode()}
+  
+      Forgets about the local node's involvement in the transaction.
+      
+      Called from the following codes:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{CommitTransaction()}{xact.c}{}\vspace{-10pt} \\
+		  \FuncRef{PrepareTransaction()}{xact.c}{}\vspace{-10pt} \\
+		  \FuncRef{AbortTransaction()}{xact.c}{}\vspace{-10pt} \\ \hline
+      \FuncRefTrailor
+  
+  \FUNC{IsTransactionLocalNode()}
+  
+      Checks if the local node is involved in the transaction.
+      
+      Called form the following codes:
+      
+      It is for the future use and is not used at present.
+  
+  \FUNC{IsXidImplicit()}
+  
+      Checks if the given xid is for implicit 2PC.
+      
+      Called form the following code:
+      
+	  % Function cross reference
+      \FuncRefHdr
+		  \FuncRef{standard_ProcessUtility()}{utility.c}{
+			Called in handling \texttt{PREPARE TRANSACTION} command.
+		  }\\ \hline
+      \FuncRefTrailor

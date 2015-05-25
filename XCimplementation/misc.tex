@@ -1,0 +1,176 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Miscellaneous Feature section.   Describes additional GUCS to Postgres-XC.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:GUC}Additional \texttt{postgresql.conf} configuration parameters}
+
+  This section describes additional \file{postgresql.conf} configuration parameters specific to \XC.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:enableFQS}\texttt{enable\_fast\_query\_shipping}}
+
+  This is boolean parameter to specify if fast query shipping is enabled.
+  Usually this should be {\tt ON}.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:enableRemotegroup}\texttt{enable\_remotegroup}}
+
+  This is boolean parameter to specify if group-by push down to remote nodes is enabled.
+  Usually this should be {\tt ON}.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:enableRemotejoin}\texttt{enable\_remotejoin}}
+
+  This is boolean parameter to specify if join push down to remote nodes is enabled.
+  Usually this should be {\tt ON}.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:enableRemotelimit}\texttt{enable\_remotelimit}}
+
+  This is boolean parameter to specify if limit pushdown to remote nodes is enabled.
+  Usually this should be {\tt ON}.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:enableRemotesort}\texttt{enable\_remotesort}}
+
+  This is boolean parameter to specify if ORDER BY pushdown to remote node is enabled.
+  Usually this should be {\tt ON}.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:enforceTwoPhaseCommit}\texttt{enforce\_two\_phase\_commit}}
+
+  This is boolean parameter to specify if two phase commit protocol is used for
+  write transactions more than two nodes are involved.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:gtmBackupBarrier}\texttt{gtm\_backup\_barrier}}
+
+  This is boolean parameter to specify if GTM restart point is backed up for barrier.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:gtmHost}\texttt{gtm\_host}}
+
+  This is character string parameter to specify host name of GTM.
+  If you configure GTM proxy, you should specify host name of GTM proxy.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:gtmPort}\texttt{gtm\_port}}
+
+  This is integer parameter to specify port number of GTM.
+  If you configure GTM proxy, you should specify port number of GTM proxy.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:maxCoordinators}\texttt{max\_coordinators}}
+
+  This is integer parameter to specify the maximum number of coordinators in the cluster.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:maxDatanodes}\texttt{max\_datanodes}}
+
+  This is numeric parameter to specify the maximum number of datanodes in the cluster.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:maxPoolSize}\texttt{max\_pool\_size}}
+
+  This is numeric parameter to specify the maximum number of pooled connection in the pooler.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:minPoolSize}\texttt{min\_pool\_size}}
+
+  This is numeric parameter to specify the minimum number of pooled connection in the pooler.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:persistentDatanodeConnections}\texttt{persistent\_datanode\_connections}}
+
+  This is boolean parameter to specify if the connections from coordinator to datanodes should keep assigned.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:pgxcNodename}\texttt{pgxc\_node\_name}}
+
+  This is character string parameter to specify the node name of itself.
+
+\subsection*{\label{subsec:poolerPort}\texttt{pooler\_port}}
+
+This is numeric parameter to specify the port number of the pooler.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:remoteType}\texttt{remotetype}}
+
+  Used to identify what is connecting to the backend.
+  Usually, do not modify this parameter.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:requireRepTablePkey}\texttt{require\_replicated\_table\_pkey}}
+
+  Boolean parameter to specify if it is not allowed replicated tables without primary key or another unique key combination involved.
+  If this is turned on and no such unique key is not involved, the statement fails.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection*{\label{subsec:maintenanceMode}\texttt{xc\_maintenance\_mode}}
+
+  Boolean parameter to control if write operation is allowed in {\tt EXECUTE DIRECT}.
+  This parameter cannot turn on in {\tt postgresql.conf}.
+  Only a superuser can turn it on in a session.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\section{\label{sec:syntax}Additional SQL syntax for \XC}
+
+  The following lists \XC-specific SQL statement syntax.
+  Refer to \XC~ documentation for details.
+  
+  \begin{itemize}
+	  \item \texttt{ALTER NODE} statement.
+	  \item \texttt{DISTRIBUTE BY} clause in \texttt{ALTER TABLE} statement.
+	  \item\texttt{CLEAN CONNECTION} statement.
+	  \item Collection function in \texttt{CREATE AGGREGATE} statement.
+	  \item \texttt{CREATE BARRIER} statement.
+	  \item \texttt{CREATE NODE} statement.
+	  \item \texttt{CREATE NODE GROUP} statement.
+	  \item Additional options for \texttt{EXPLAIN} statement.
+	  \item \texttt{DISTRIBUTE BY} clause in \texttt{CREATE TABLE} statement.
+	  \item \texttt{DROP NODE} statement.
+	  \item \texttt{DROP NODE GROUP} statement.
+  \end{itemize}

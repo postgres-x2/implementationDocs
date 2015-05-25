@@ -1,0 +1,197 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Description of pgxc_clean module.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  \file{pgxc_clean} is \XC{} utility to cleanup transaction commit state inconsistency due to
+  the crash of any coordinator or datanode.
+  
+  \file{pgxc_clean} visits all two-phase commit (2PC, afterwords) transactions of all the
+  nodes and check if there's any outstanding 2PC transactions, which are not
+  prepared/committed/aborted, and see if the status is consistent.
+  If there's any conflict, \file{pgxc_clean} cleans up the status.
+  For 2PC transactions which need application intervention or cannot resolve conflict,
+  \file{pgxc_clean} prints a message so that DBA can determine how to fix these conflicts.
+  
+  Reference document of \file{pgxc_clean} will be found at
+  \url{http://postgres-xc.sourceforge.net/docs/1_2_1pgxcclean.html}.
+  
+  Source code is located at \file{contrib/pgxc_clean}.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Two-Phase Commit Transactions in \XC}
+
+  \XC{} has two kinds of 2PC transactions as follows:
+  
+  \paragraph*{{\bf Implicit 2PC}:}
+    	Implicit 2PC transaction is the one where more than one nodes are updated.
+    	2PC commit protocol is needed
+    	to maintain transaction integrity.
+    	When to commit, ``\texttt{PREPARE TRANSACTION}'' statement is issued to all the involved node and then
+    	``\texttt{COMMIT PREPARED}'' statement is issued immediately.
+    	When to abort, no ``\texttt{PREPARE TRANSACTION}'' statement is needed.
+    	\texttt{ABORT} statement is issued to all the target node instead.
+    	Implicit 2PC should not survive a session and if its
+    	status is ``{\bf PREPARED}'', this transaction is intended to be committed.
+    
+    	Transaction id for implicit 2PC transaction is ``\file{__XC[0-9]+}''.
+  	
+  \paragraph*{{\bf Explicit 2PC}:}
+    	Explicit 2PC transaction is the one where \texttt{PREPARE TRANSACTION} statement is
+    	issued by the application.
+    	When more than one node are involved in the transaction,
+    	\texttt{PREPARE TRANSACTION}, \texttt{COMMIT PREPARED} and \texttt{ABORT} command are propagated to all
+    	the involved node\footnote{
+    		In implementation, \XC{} needs to maintain involved nodes in 2PC information, which has not been done yet.
+    		\XC{} needs extension so that \file{pg_prepared_xacts} includes a set of nodes involved
+		}.
+    	Explicit 2PC transaction survives a session and node restart, that is,
+    	even if 2PC transaction's status is ``{\bf PREPARED}'', we cannot determine
+    	if it should be committed or aborted.
+    	Only application can tell this.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Transaction Commit Steps}
+
+  In \XC, if a transaction is involved by more than one node, successful implicit 2PC transaction are handled as follows:
+  
+  % Implicit 2PC flow
+  {\newcommand{\DA}{\textdownarrow}
+  	\begin{center}
+  	%\ovalbox{
+  	\fbox{
+  		\parbox{0.6\hsize}{
+  			\center
+  			Handles SQL statement from application \\ \DA\\
+  			Receives {\tt COMMIT} or end of transaction block \\ \DA\\
+  			Issues {\tt PREPARE TRANSACTION} to all the involved nodes \\ \DA\\
+  			Issues {\tt COMMIT PREPARED} to all the involved nodes \\[8pt]
+  		}
+  	}
+  	\end{center}
+  }
+  
+  Successful explicit 2PC transaction are handled as follows:
+  
+  % Explicit 2PC flow
+  {\newcommand{\DA}{\textdownarrow}
+  	\begin{center}
+  	%\ovalbox{
+  	\fbox{
+  		\parbox{0.8\hsize}{
+  			\center
+  			Handles SQL statement from application \\ \DA\\
+  			Receives {\tt PREPARE TRANSACTION} from application \\ \DA\\
+  			Propagates {\tt PREPARE TRANSACTION} to all the involved nodes \\ \DA\\
+  			Receives {\tt COMMIT PREPARED} and propagate it to involved nodes.\\[8pt]
+  		}
+  	}
+  	\end{center}
+  }
+  
+  Please note that final {\tt COMMIT PREPARED} is not included in explicit 2PC transaction handling.
+  This has to be done when \XC{} receives {\tt COMMIT PREPARED} statement.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Possible Transaction Status Conflicts}
+
+  Transaction status conflict may occur only with system failure, including node crash or
+  hardware crash.
+  
+  Here, we analyze possible crash/failure point and transaction status conflict among nodes.
+  
+  In this section, we may use a term {\bf root transaction}, which is the one taking care of
+  connection form an application directly.
+  Other piece of transaction created by the root transaction may be called {\bf child transaction}.
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{Implicit 2PC}
+
+  \paragraph*{Before receiving \texttt{COMMIT}}
+  
+    If root transaction fails, connections to all the child transactions fail.
+    In this case, when transaction recovery is done, all the transactions are
+    marks as ``aborted'' in CLOG and we don't need to do any more cleanup work.
+  
+  \paragraph*{While handling \texttt{PREPARE TRANSACTION}}
+  
+    If any failure occurs in each \texttt{PREPARE TRANSACTION} handling, \texttt{ABORT} will be issued to all the node.
+    If any node crashes and cannot receive \texttt{ABORT}, transaction will remain {\bf prepared} in failed nodes
+    while it is aborted in other nodes.
+    This is one possible conflict visible when this node recovers and joins the cluster again.
+  
+  \paragraph*{While handling \texttt{COMMIT PREPARED}}
+  
+    Because {\tt PREPARE TRANSACTION} is successful in all the involved nodes, subsequent
+    {\tt COMMIT PREPARED} must be successful to if there's no system failure, such as crash
+    storage failure.
+    
+    After failed node is back, their transaction status is ``prepared'' while others are ``committed''.
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{Explicit 2PC}
+
+  \paragraph*{Before receiving \texttt{PREPARE TRANSACTION}}
+  
+    Same as implicit 2PC before receiving \texttt{COMMIT}.
+    All the transaction at all nodes fail and they are marked ``aborted'' in each local CLOG.
+  
+  \paragraph*{While propagating \texttt{PREPARE TRANSACTION}}
+  
+    If some node crashes before \texttt{PREPARE TRANSACTION} is propagated, their status will
+	eventually become ``aborted'', while others are ``prepared''.
+  
+  \paragraph*{While propagating \texttt{COMMIT PREPARED}}
+  
+    If some of the involved node fail, their transaction status will remain ``prepared'',
+	while others are ``committed''.
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{Possible status conflicts and their cleaning-up}
+
+  Possible status will be summarized as follows:
+  
+  \begin{itemize}
+	  \item ``Committed'' at some node, ``prepared'' at others.
+	  		In both implicit and explicit 2PC,  it is obvious that this transaction is
+			to be committed.
+	  \item ``Aborted'' at some node, ''prepared'' at others.
+		In both implicit and explicit 2PC, it is obvious the transaction should be aborted.
+	  \item All ``prepared''.
+		In implicit 2PC, it is obvious that it should be committed.
+		In explicit 2PC, application should determine if this is to be aborted or committed.
+  \end{itemize}
+  
+  \file{pgxc_clean} visits datanodes/coordinators and obtains any piece of transactions which
+  remain ``prepared'', then test this transaction at other nodes to find the above conflicts and
+  cleans them up.
+  
+  To obtain all the prepared transaction information, \file{pgxc_clean} uses \texttt{EXECUTE DIRECT}
+  statement to read \file{pg_prepared_xacts} system view.
+  
+  To obtain status of prepared transaction at other nodes, it visits \file{pg_prepared_xacts} to
+  obtain locally prepared transaction.
+  It uses \file{pgxc_is_committed()} system function to obtain committed or aborted
+  transaction status.
+  
+  In cleaning-up, \file{pgxc_clean} need to issue \texttt{COMMIT PREPARED} or
+  \texttt{ROLLBACK PREPARED} statement to target node using \texttt{EXECUTE DIRECT} statement.
+  Usually \texttt{EXECUTE DIRECT} statement allow only read operation.
+  To override this, \file{pgxc_clean} turns on \file{xc_maintenance_mode} connection parameter to ON.
+  This is \XC-specific GUC parameter only DBA can turn it on to allow \texttt{EXECUTE DIRECT} to
+  perform update operation as well.
+  This is actually a GUC parameter which cannot turn on in \file{postgresql.conf}.
+

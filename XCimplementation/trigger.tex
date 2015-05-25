@@ -1,0 +1,128 @@
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Trigger Syntax}
+
+  Trigger syntax is defined in \file{gram.y}.
+  There is no \XC-specific change in trngger syntax.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Creating Trigger}
+
+  \texttt{CREATE TRIGGER} statement is parsed into \file{CreateTrigStmt} structure and passed to
+  \file{ProcessUtilitySlow()} function in \file{utility.c}.
+  Here, after local handling has been done, the statement is propagated to other nodes where the base
+  relation is defined.
+  
+  \file{commands/trigger.c} implements most of trigger DDL handler.
+  \file{CreateTrigger()} is the main handler of {\tt C\tt REATE TRIGGER} statement.
+  They have no \XC-specific changes.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Changing Trigger definition}
+
+  It is handled by \file{ExecRenameStmt()} in \file{alter.c}.
+  Before this, the statement is propagated to other nodes where the base relation is defined
+  \footnote{
+	  We need to check if \texttt{ALTER TABLE} ... \texttt{ADD NODE} handle this correctly.
+  }.
+  
+  In the case of \texttt{ALTER TRIGGER}, it is then passed to \file{remanetrig()} in \file{trigger.c}.
+  
+  They have no \XC-specific change.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Dropping Trigger}
+
+  This statement is handled by \file{ExecDropStmt()} in \file{utility.c} and then passed to
+  \file{RemoveObjects()} in \file{dropcmds.c} before it is propagated to other nodes.
+  
+  \file{RemoveObjects()} does not have \XC-specific changes.
+
+
+%------- Subsec Subsec -----------------------------------------------------
+
+\subsection{Firing Trigger}
+
+  Most of the changes needed to support triggers are in firing triggers, implemented in
+  \file{trigger.c}.
+  
+  This section describes \XC-specific utility functions in this module and then describes
+  changes to existing trigger firing functions.
+
+
+% - - - - Func - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\FUNC{pgxc_should_exec_triggers()}
+
+  Determines if all of the triggers for the relation should be executed
+  here, on this node.
+  On a coordinator, returns true if there is at least one non-shippable trigger for the relation
+  that matches the given event, level and timing.
+  (or for any local-only table for that matter), returns false if all of the matching triggers
+  are shippable.
+  
+  PG behaviour is such that the triggers for the same table should be executed in
+  alphabetical order.
+  This make it essential to execute all the triggers on the same node, be it coordinator or
+  datanode.
+  So the idea used here is: if all matching triggers are shippable, they should be executed on local
+  tables (i.e. on datanodes).
+  Even if there is at least one single trigger that is not shippable, all the triggers should be fired on remote
+  tables (i.e. on the coordinator).
+  This ensures that either all the triggers are executed on coordinator, or all are executed on
+  datanodes.
+
+
+% - - - - Func - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\FUNC{pgxc_is_trigger_firable()}
+
+This function is defined only to handle the special case if the trigger is an internal trigger.
+Once we support global constraints, we should not handle this as a special case:
+global constraint triggers would be executed just like normal triggers.
+Internal triggers are internally created triggers for constraints such as foreign key or
+unique constraints.
+Currently we always execute an internal trigger on datanodes, assuming that the constraint
+trigger function is always shippable to datanodes.
+We can safely assume so because we disallow constraint creation for scenarios where the
+constraint needs access to records on other nodes.
+
+
+% - - - - Func - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\FUNC{pgxc_is_internal_trig_firable()}
+
+  This function determines if a given internal trigger is firable at this node.
+
+
+% - - - - Func - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\FUNC{pgxc_get_trigger_tuple()}
+
+  Obtains tuple of the trigger target.
+
+
+% - - - - Func - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\FUNC{pgxc_check_distcol_update()}
+
+  Compares the distribution column values given to the function and error out if they
+  are different.
+  This is called to make sure triggers have not updated the distribution column.
+
+
+% - - - - subsubsection - - - - - - -  - - - - - - - - - - - - - - - - - - - - -
+
+\subsubsection{Other Trigger-firing Functions}
+
+Other trigger-firint functions are modofied to determine if the trigger should be fired
+in this node.
+Fire it if yes.
+

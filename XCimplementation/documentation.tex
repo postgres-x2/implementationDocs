@@ -1,0 +1,79 @@
+%
+% Chapter "Documentation", description of how Postgres-XC reference document
+% is composed.
+%
+
+	This chapter describes how \XC{} reference document is built.
+
+
+\section{\XC{} Reference Document Source Structure}
+
+	Because \XC{} inherits most of the spec from PostgreSQL, it is reasonable to prepare
+	the reference manual using original PostgreSQL SGML files.
+	With PostgreSQL document resource, we can build the following documents:
+
+	\begin{enumerate}
+		\item PDF (A4 and US Legal size)
+		\item man pages
+		\item html online document
+		\item epub file (version 1.2 or later)
+	\end{enumerate}
+
+	Target should be as follows:
+
+	\begin{enumerate}
+		\item {\tt postgres-A4.pdf} or {\tt postgres-US.pdf}
+		\item {\tt man}
+		\item {\tt html}
+		\item {\tt postgres.epub}
+	\end{enumerate}
+
+	In the case of {\tt html}, current \XC{} document handling framework allows
+	to embed international characters like Japanese.
+
+	We should be careful to make it easier to merge with later version of \PG{} SGML files.
+	To achieve this, \XC{} reference document source allows to embed special "TAG" to distinguish
+	what is common, what is \PG-specific and what is \XC-specific.
+	Also, we may want to allow translations to different languages.
+	To make it easier to handle as an external tool, \XC{} built dedicated (but somewhat general)
+	tool to select what tags to be included.
+	Tag is used to indicate what part of the original file should be taken or thrown away.
+	Lines not enclosed with any such tags are common to all.
+	So SGML file may look like...
+
+	\begin{lstlisting}[frame=single]
+...
+<para>
+<!## PG>
+...
+<!## end>
+<!## XC>
+...
+<!## end>
+</para>
+	\end{lstlisting}
+
+	You can nest this tag. With the nest, you can include different translations in a single file.
+
+	This can be handled by a command {\tt makesgml}, which will be placed at
+	\file{src/pgxc/tools/makesgml}.
+
+	Makesgml can be invoked as follows:
+
+	\begin{lstlisting}
+makesgml -i inf -o outf -I include_tag ... -E exclude_tag ...
+	\end{lstlisting}
+
+	Each argument is optional and order of the argument is arbitrary.
+	If you omit {\tt -i} option, it will read from stdin.
+	If {\tt -o} is omitted, it will write to stdout.
+	If input file include unspecified tags in the arguments, it will be treated as specified
+	\file{-E}.
+
+	All the sgml files from original PostgreSQL tarball will be renamed to sgmlin.
+	Then it will be filtered by {\tt makesgml} and fed to original document build scripts.
+
+\section{\XC{} Reference Documents}
+
+	\XC{} reference document will be found in a separate PDF file.
+

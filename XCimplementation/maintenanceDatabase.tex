@@ -1,0 +1,74 @@
+%
+% Chapter "Database Maintenance"
+%
+% Description of maintenance related commands.
+%
+
+
+\section{\label{sec:vacuum}Vacuum}
+
+  Vacuum has two major classes: \texttt{VACUUM} and \texttt{Auto Vacuum} (\texttt{LAZY VACUUM}).
+  There is a significant difference of Vacuum behavior from other statment.
+  Datanodes obtain GXID and the snapshot for Vacuum directly from GTM by themselves.
+
+  \texttt{VACUUM} is issed by DBA to collect garbages and analyze a database.
+  Basically, \texttt{VACUUM} maintains the database just like \PG.
+  But there's a bit difference to support \XC{} specific situation.
+  
+  \texttt{VACUUM} checks that the XID doesn't go backward after last vacuum to protect the database.
+  But the XID could go out-of-sync in \XC{} when the datanode switch to global XID
+  from local XID or it has been idle for a long time
+  (and other nodes have been worked hard.)
+  To fix this case, \XC{} allows rewinding XID in standalone mode.
+  
+  \texttt{Auto Vacuum} is invoked periodically specified by \file{autovacuum_naptime} GUC parameter.
+
+  In \PG{}, \texttt{Auto Vacuum} is also performed each 65k transactions,
+  but this feature does not work well in \XC{},
+  because if the node does not involved in milestone transaction, he doesn't start \texttt{Auto Vacuum}.
+
+  As \texttt{VACUUM} and \texttt{Auto Vacuum} shares the code, changes to \texttt{Auto Vacuum}
+  are almost same as \texttt{VACUUM}.
+  But please not that \texttt{Auto Vacuum} inquires special GXID that is not listed in global snapshot.
+  \PG{} excludes \texttt{Auto Vacuum} transaction too.
+  To do so, \texttt{Auto Vacuum} inquires a GXID to a GTM using dedicated message \file{TXN_BEGIN_GETGXID_AUTOVACUUM}.
+
+
+\section{\label{sec:pgdump}Changes in \texttt{pg\_dump}}
+
+  \XC{} has three extension/modification to \file{pg_dump} and \file{pg_dumpall} utility:
+  
+  \begin{itemize}
+	  \item Including node definitions. (\file{pg_dumpall} only)
+	  \item Including table distribution parameters into table definitions.
+	  \item Obtain sequence values not only from sequence relations
+            but GTM.
+  \end{itemize}
+  
+  With \file{--dump-nodes} option, \file{pg_dump_all} includes nodes' definitions to
+  dumped data by scanning \file{pg_catalog.pgxc_node} and \file{pg_catalog.pgxc_group}.
+  
+  Table distribution parameters mean \texttt{DISTRIBUTE BY} and \texttt{TO NODE} clauses.
+  If a user want to include \texttt{TO NODE} clause into the dump file, \file{--include-nodes}
+  option makes that clause.
+  
+  In \XC, locally cached values in sequence relations might not be latest values because
+  the sequence values could have been modified by other coordinators.
+  To backup the latest sequence values,
+  \file{pg_dump} calls \file{pg_catalog.nextval}.
+
+\section{\label{sec:redistrib}Table Redistribution}
+
+  When we make a change in a distribution rule or the distribution target of a table,
+  \XC{} redistribute existing data in the table.
+  To redistribute data, the coordinator collects all the data from relevant datanodes,
+  and then redistributes the data according to the new rule.
+  
+  The data redistribution is performed automatically by \texttt{ALTER TABLE} command.
+  When \texttt{ALTER NODE} command detects the need of redistribution, it calls \file{BuildRedistribCommands()}
+  to build redistribution state object.
+  The redistribution state object includes SQL commands to redistribute,
+  they are consist of \texttt{COPY TO}, \texttt{TRUNCATE} and \texttt{COPY FROM}.
+  And \texttt{ALTER TABLE} calls \texttt{PGXCRedistribTable()} to  perform redistruibution.
+  This function called twice: before and after update the catalog.
+  Please visit \file{redistrib.c} for the logic of the redistribution.

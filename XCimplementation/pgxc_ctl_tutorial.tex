@@ -1,0 +1,209 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This is a pgxc_ctl tutorial.
+%
+% Author: Koichi Suzuki
+%
+% This can be disbtributed under Createve Commons Attribution-NonCommertial-SharaAlike
+% 4.0 International License.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%============= Overall Document Setting ========================================
+
+% \documentclass{jarticle}
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{array, multirow, longtable}
+\usepackage{fancyhdr}
+\usepackage{fancybox}
+\usepackage{booktabs}
+\usepackage{url}
+
+% Macro for long path name.
+% Taken from http://www.biwako.shiga-u.ac.jp/sensei/kumazawa/tex/url.html
+\newcommand{\file}{\begingroup%
+	  \def\UrlBreaks{\do\\\do\/\do\_\do\-\do\+\do\=}%
+		    \Url}
+
+%=========== Additional symbols ==============================
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+
+%========== For source code listings. ========================
+
+\usepackage{listings}
+\lstset{language=c,
+%  basicstyle=\ttfamily\scriptsize,
+  basicstyle=\ttfamily\footnotesize,
+%  commentstyle=\textit,
+  commentstyle=\ttfamily,
+%  classoffset=1,
+  keywordstyle=\bfseries,
+  frame=tRBl,
+  framesep=5pt,
+  showstringspaces=false,
+%  numbers=left,
+%  stepnumber=1,
+%  numberstyle=\tiny,
+  tabsize=4
+}
+
+%
+% ===========================================
+%    Version
+%
+\newcommand{\ThisVersion}{Version~1.0}
+\newcommand{\ReleaseDate}{October~2$^{nd}$, 2014}
+
+% ============================================
+%    Page Format
+%
+\addtolength{\textwidth}{0.8in}
+\addtolength{\textwidth}{1cm}
+%\setlength{\topmargin}{0in}
+%\addtolength{\textheight}{0.5in}
+%\setlength{\oddsidemargin}{0.3in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{8pt}
+\setlength{\footskip}{1.2cm}
+\setlength{\oddsidemargin}{1.5cm}
+\setlength{\evensidemargin}{1.5cm}
+\sloppy
+
+%
+% ==== Header ==================
+%
+\newcommand\Author[0]{Koichi Suzuki}
+\newcommand\Auth[0]{K.{}Suzuki}
+\pagestyle{fancy} \fancyhf{}
+%\chead{\ThisVersion\quad\ReleaseDate}
+% \rhead{\leftmark}
+% \rhead{\ReleaseDate}
+\lhead{\rightmark}
+%\cfoot{Page~\thepage}
+\cfoot{Page~\thepage}
+\rfoot{\ThisVersion}
+%\lfoot{\copyright\Author}
+\lfoot{\Auth}
+
+%
+% ===========================================
+%    Commonly used terms
+
+\newcommand{\XC}{Postgres-XC}
+\newcommand{\PG}{PostgreSQL}
+\newcommand{\NY}{(Not implemented yet)}
+\newcommand{\myjob}{Support Service of Distributed DBMS Evolvement Strategy Planning}
+
+%
+% =========================================
+%	Commonly used macros
+%
+%\newcommand{\FUNC}[1]{\paragraph*{\file{#1}}}	% Function description
+%\newcommand{\FUNC}[1]{\vspace{13pt}{\large\file{#1}}\vspace{-3pt}}	% Function description
+\newcommand{\FUNC}[1]{\vspace{13pt}{\file{#1}}\vspace{-3pt}}	% Function description
+%\newcommand{\Variable}[1]{\paragraph*{\file{#1} variable}} % Variable description
+%\newcommand{\Variable}[1]{\vspace{13pt}{{\large\file{#1} variable:}}\vspace{-3pt} } % Variable description
+\newcommand{\Variable}[1]{\vspace{13pt}{{\file{#1} variable:}}\vspace{-3pt} } % Variable description
+%\newcommand{\GUC}[3]{\paragraph*{\file{#1} \quad type:\file{#2};  \quad default:\file{#3}}} % GUC
+%\newcommand{\GUC}[3]{\vspace{13pt}{{\large\file{#1}} \quad type: \file{#2};  \quad default: \file{#3}}\vspace{-3pt} } % GUC
+\newcommand{\GUC}[3]{\vspace{13pt}{{\file{#1}} \quad type: \file{#2};  \quad default: \file{#3}}\vspace{-3pt} } % GUC
+\newcommand{\para}[1]{\par\vspace{5pt}\textbf{#1}\par}
+
+%
+% Macros for function reference table.
+%
+\newcommand{\FuncRefHdr}{
+	\vspace{-16pt}
+	\begin{center}
+	\begin{tabular}[htp]{lp{0.5\hsize}} \\\hline
+	Caller&File \& Description\\ \hline\vspace{3pt}
+}
+\newcommand{\FuncRefTrailor}{
+\end{tabular}
+\end{center}
+}
+\newcommand{\FuncRef}[3]{\file{#1}&\parbox[t]{\hsize}{\raggedright\file{#2}\\#3}}
+
+
+%
+% Macros to describe structure members.
+%
+\newcommand{\StructMemberHdr}[1]{
+	\pagebreak[1]
+	\begin{center}
+	\file{#1} structure members\nopagebreak\\ \nopagebreak\vspace{5pt}\nopagebreak
+	\begin{tabular}{lp{0.6\hsize}} \hline
+	Member Name & Description\\ \hline
+}
+\newcommand{\AdditionalStructMemberHdr}[1]{
+	\pagebreak[1]
+	\begin{center}
+	Additional members of \file{#1} structure\nopagebreak\\ \nopagebreak\vspace{5pt}\nopagebreak
+	\begin{tabular}{lp{0.6\hsize}} \hline
+	Member Name & Description\\ \hline
+}
+\newcommand{\StructMember}[3]{\file{#1} & \parbox[t]{\hsize}{\raggedright Type: \file{#2}; \quad #3} \\[5pt]}
+\newcommand{\StructMemberTrailor}{\hline \end{tabular}\end{center}}
+
+%
+% =========================================
+%	Make subsection number visible
+\setcounter{secnumdepth}{3}
+
+% ============================================
+%    Title, etc.
+%
+\title{Pgxc\_ctl tutorial}
+\date{\ReleaseDate{}}
+\author{\Author}
+%
+% ============================================
+
+\begin{document}
+
+\maketitle
+
+\newpage
+\tableofcontents
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Preface
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter*{Preface}
+
+This is a tutorial document of \file{pgxc_ctl} utility.
+\file{Pgxc_ctl} provides \XC cluster configuration and operation.
+You can edit \file{pgxc_ctl} configuration file, initialize \XC cluster and perform
+many operations such as start/stop the cluster, failover and adding/removing nodes.
+Although \file{pgxc_ctl} does not provide all the potential configurations of \XC,
+you can configure most of the popular configuration you may want to have.
+
+Enjoy.
+
+Koichi Suzuki
+
+This article is licensed under Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International License.
+
+\begin{flushright}
+	\includegraphics[width=0.15\hsize]{88x31.eps}
+\end{flushright}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% PART 4: PXXC Clusaer Operations (pgxc_ctl)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+
+\include{pgxcCtl}
+
+\end{document}

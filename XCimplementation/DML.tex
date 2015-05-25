@@ -1,0 +1,116 @@
+%
+% This file includes design and implementation of DML handling in Postgres-XC.
+%
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:insert}Top level statment}
+
+  Basically, XC does not handle {\tt INSERT}, {\tt UPDATE} and {\tt DELETE}
+  statements specifically except for replicated table handling.
+  
+  These statements are analyzed, rewritten and planned before execution.
+  Subqueries are also planned using vanilla \PG{} code.
+  During the analyze, remote tables are marked and they are planned into {\tt RemoteQuery}.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:returning}Returning Clause}
+
+  If any statement has {\tt RETURNING} clause, this information is set to {\tt retruningList}
+  member of {\tt Query} structure.
+  If DML has {\tt RETURNING} clause, this information is set to {\tt returningList} member of
+  {\tt InsertStmt}, {\tt DeleteStmt} and {\tt UpdateStmt} structure.
+  It is vanilla \PG~structure and no modification was made in \XC.
+  
+  So far, {\tt RETURNING} clause is handled as shippable in \XC, as found in
+  {\tt pgxc\_shippability\_walker()}.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:repTableDML}DML Handling for Replicated Tables}
+
+  In updating repliated tables, 
+  each coordinator visits \textbf{bf primary} node first gor each replicated table updates.
+  This is needed to serialize conflicting updates and to prevent inconsisitent updates among nodes.
+  By doing this, when updates at primariy node is successful, then coordinator can visit
+  other nodes in any order.
+  Conflicting transactions will be blocked at primary node until the first successful transaction
+  finishes.
+
+  Through analyzer and other functions, primary node list of a given replicate table will be
+  set to the member \file{primarynodelist}  of \file{ExecNodes} structure by
+  \file{GetRelationNodes():locator.c}.
+  This value is tested in the executor, \file{executeRemote.c}.
+  In the case of copy in (copying tuples to a table), it is handled by \file{DataNodeCopyIn():execRemote.c}.
+  If primary node is defined for the rlation, the executor extracts one connection to a primary node and
+  handle this first before other replica are handled.
+
+  Similar handling was done in \file{get_exec_connections():execRemote.c} and
+  \file{redustrub.c:distrib_copy_from()} too.
+
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:copy}Copy statement handling}
+
+  \texttt{COPY TO} collects data from datanodes and \texttt{COPY FROM} distributes data to datanodes.
+  These are quite similar to \texttt{INSERT} and \texttt{SELECT} and look like a DML.
+  But actually they are utility statements.
+  In addition to distinct implementation,
+  \texttt{COPY} statements have to calcurate which node and what query to send by themselevs
+  because the planner doesn't analyze utility statements
+  and doesn't locate where to go the query for them.
+  There's a point here. When the coordinator received \texttt{COPY FROM},
+  the query doesn't specify column with non-shippable default value,
+  the coordinator have to complete both a query and data.
+  
+  In addition, \texttt{COPY} processes data in consecutive segments.
+  It means the following actions will be taken in parallel.
+  
+  \begin{itemize}
+    \item Coordinator receives data from client and propages it to datanodes
+    \item Datanodes receive data from a coordinator and processes it
+  \end{itemize}
+  
+  To calculate involved nodes and save distribution information into \file{struct RemoteCopyState},
+   \file{RemoteCopy_GetRelationLoc()} is implemented.
+  And \file{RemoteCopy_BuildStatement()} builds the query shipped to datanodes.
+  Ofcourse the built query includes the column which has non-shippable default value.
+  These functions are called from \file{BeginCopy()}.
+  This function is common to \texttt{COPY TO} and \texttt{COPY FROM}.
+  
+  \file{CopyFrom()} processes \texttt{COPY FROM} statement.
+  To begin the copy, \file{pgxcNodeCopyBegin()} prepares a global transaction and connections to
+  datanodes and send \texttt{COPY FROM} query to datanodes.
+  Each copied data obtained from \PG{} client by \file{NextCopyFrom()} is checked which node
+  to go by \file{GetRelationNodes()} and it is sent to datanodes by \file{DataNodeCopyIn()}.
+  If \file{COPY FROM} need to support binary format data, the signature that indicates binary
+  mode need to be sent to datanodes just after the query is sent to datanodes.
+  
+  \file{CopyTo()} processes \texttt{COPY TO} statement.
+  To begin the copy, \file{pgxcNodeCopyBegin()} prepares a global transaction and connections to
+  datanodes and send \texttt{COPY TO} query to datanodes.
+  \file{DataNodeCopyOut()} reads copied data from each connection to datanode until it receives
+  message with type '\texttt{Z}' (Ready For Query) in \file{handle_response()}.
+  Copied data rows will come as messages with type '\texttt{d}' (CopyOutDataRow).
+  They are handled in \file{HandleCopyDataRow()} using the storage specified at the combiner.
+  If \texttt{COPY TO} need to support binary format data, the signature that indicates binary mode
+  need to be sent to \PG{} client just after the query is sent to datanodes.
+  
+  \texttt{COPY} statement is implemented in \file{src/backend/command/copy.c} and main part of
+  \XC{} specific logic is in \file{src/backend/pgxc/copy/remotecopy.c} and
+  \file{src/backend/pgxc/pool/execRemote.c}.
+  \file{remotecopy.c} has utility functions used in \file{copy.c}.
+  For example, \file{RemoteCopy_GetRelationLoc()} creates \file{RelationLocInfo}
+  which has location information of relations involved to the query.
+  \file{RemoteCopy_BuildStatement()} builds a copy query executed at datanodes.
+  \file{execRemote.c} has functions to execute actual process of the copy command
+  using information prepared in \file{copy.c}.
+  Examples include \file{pgxcNodeCopyBegin()} and \file{DataNodeCopyIn()}.
+  
+

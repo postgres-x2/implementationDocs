@@ -1,0 +1,1191 @@
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=latex 2014.9.16)  7 APR 2015 15:47
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**pgxc
+(./pgxc.tex
+LaTeX2e <2011/06/27>
+Babel <3.9h> and hyphenation patterns for 78 languages loaded.
+(/usr/share/texlive/texmf-dist/tex/latex/base/book.cls
+Document Class: book 2007/10/19 v1.4h Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/bk10.clo
+File: bk10.clo 2007/10/19 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@chapter=\count80
+\c@section=\count81
+\c@subsection=\count82
+\c@subsubsection=\count83
+\c@paragraph=\count84
+\c@subparagraph=\count85
+\c@figure=\count86
+\c@table=\count87
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphicx.sty
+Package: graphicx 1999/02/16 v1.0f Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 1999/03/16 v1.13 key=value parser (DPC)
+\KV@toks@=\toks14
+)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphics.sty
+Package: graphics 2009/02/05 v1.0o Standard LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/trig.sty
+Package: trig 1999/03/16 v1.09 sin cos tan (DPC)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/latexconfig/graphics.cfg
+File: graphics.cfg 2010/04/23 v1.9 graphics configuration of TeX Live
+)
+Package graphics Info: Driver file: dvipdfmx.def on input line 91.
+
+(/usr/share/texlive/texmf-dist/tex/latex/dvipdfmx-def/dvipdfmx.def
+File: dvipdfmx.def 2014/01/23 v3.4 LaTeX graphics driver for dvipdfmx (TeX Live
+/ChoF)
+))
+\Gin@req@height=\dimen103
+\Gin@req@width=\dimen104
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/array.sty
+Package: array 2008/09/09 v2.4c Tabular extension package (FMi)
+\col@sep=\dimen105
+\extrarowheight=\dimen106
+\NC@list=\toks15
+\extratabsurround=\skip43
+\backup@length=\skip44
+)
+(/usr/share/texlive/texmf-dist/tex/latex/multirow/multirow.sty
+\bigstrutjot=\dimen107
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/longtable.sty
+Package: longtable 2004/02/01 v4.11 Multi-page Table package (DPC)
+\LTleft=\skip45
+\LTright=\skip46
+\LTpre=\skip47
+\LTpost=\skip48
+\LTchunksize=\count88
+\LTcapwidth=\dimen108
+\LT@head=\box26
+\LT@firsthead=\box27
+\LT@foot=\box28
+\LT@lastfoot=\box29
+\LT@cols=\count89
+\LT@rows=\count90
+\c@LT@tables=\count91
+\c@LT@chunks=\count92
+\LT@p@ftn=\toks16
+)
+(/usr/share/texlive/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty
+\fancy@headwidth=\skip49
+\f@ncyO@elh=\skip50
+\f@ncyO@erh=\skip51
+\f@ncyO@olh=\skip52
+\f@ncyO@orh=\skip53
+\f@ncyO@elf=\skip54
+\f@ncyO@erf=\skip55
+\f@ncyO@olf=\skip56
+\f@ncyO@orf=\skip57
+)
+(/usr/share/texlive/texmf-dist/tex/latex/fancybox/fancybox.sty
+Package: fancybox 2010/05/15 1.4
+
+Style option: `fancybox' v1.4 <2010/05/15> (tvz)
+\@fancybox=\box30
+\shadowsize=\dimen109
+\@Sbox=\box31
+\do@VerbBox=\toks17
+\the@fancyput=\toks18
+\this@fancyput=\toks19
+\EndVerbatimTokens=\toks20
+\Verbatim@Outfile=\write3
+\Verbatim@Infile=\read1
+) (/usr/share/texlive/texmf-dist/tex/latex/booktabs/booktabs.sty
+Package: booktabs 2005/04/14 v1.61803 publication quality tables
+\heavyrulewidth=\dimen110
+\lightrulewidth=\dimen111
+\cmidrulewidth=\dimen112
+\belowrulesep=\dimen113
+\belowbottomsep=\dimen114
+\aboverulesep=\dimen115
+\abovetopsep=\dimen116
+\cmidrulesep=\dimen117
+\cmidrulekern=\dimen118
+\defaultaddspace=\dimen119
+\@cmidla=\count93
+\@cmidlb=\count94
+\@aboverulesep=\dimen120
+\@belowrulesep=\dimen121
+\@thisruleclass=\count95
+\@lastruleclass=\count96
+\@thisrulewidth=\dimen122
+)
+(/usr/share/texlive/texmf-dist/tex/latex/url/url.sty
+\Urlmuskip=\muskip10
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/base/fontenc.sty
+Package: fontenc 2005/09/27 v1.99g Standard LaTeX package
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/t1enc.def
+File: t1enc.def 2005/09/27 v1.99g Standard LaTeX file
+LaTeX Font Info:    Redeclaring font encoding T1 on input line 43.
+))
+(/usr/share/texlive/texmf-dist/tex/latex/base/textcomp.sty
+Package: textcomp 2005/09/27 v1.99g Standard LaTeX package
+Package textcomp Info: Sub-encoding information:
+(textcomp)               5 = only ISO-Adobe without \textcurrency
+(textcomp)               4 = 5 + \texteuro
+(textcomp)               3 = 4 + \textohm
+(textcomp)               2 = 3 + \textestimated + \textcurrency
+(textcomp)               1 = TS1 - \textcircled - \t
+(textcomp)               0 = TS1 (full)
+(textcomp)             Font families with sub-encoding setting implement
+(textcomp)             only a restricted character set as indicated.
+(textcomp)             Family '?' is the default used for unknown fonts.
+(textcomp)             See the documentation for details.
+Package textcomp Info: Setting ? sub-encoding to TS1/1 on input line 71.
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/ts1enc.def
+File: ts1enc.def 2001/06/05 v3.0e (jk/car/fm) Standard LaTeX file
+)
+LaTeX Info: Redefining \oldstylenums on input line 266.
+Package textcomp Info: Setting cmr sub-encoding to TS1/0 on input line 281.
+Package textcomp Info: Setting cmss sub-encoding to TS1/0 on input line 282.
+Package textcomp Info: Setting cmtt sub-encoding to TS1/0 on input line 283.
+Package textcomp Info: Setting cmvtt sub-encoding to TS1/0 on input line 284.
+Package textcomp Info: Setting cmbr sub-encoding to TS1/0 on input line 285.
+Package textcomp Info: Setting cmtl sub-encoding to TS1/0 on input line 286.
+Package textcomp Info: Setting ccr sub-encoding to TS1/0 on input line 287.
+Package textcomp Info: Setting ptm sub-encoding to TS1/4 on input line 288.
+Package textcomp Info: Setting pcr sub-encoding to TS1/4 on input line 289.
+Package textcomp Info: Setting phv sub-encoding to TS1/4 on input line 290.
+Package textcomp Info: Setting ppl sub-encoding to TS1/3 on input line 291.
+Package textcomp Info: Setting pag sub-encoding to TS1/4 on input line 292.
+Package textcomp Info: Setting pbk sub-encoding to TS1/4 on input line 293.
+Package textcomp Info: Setting pnc sub-encoding to TS1/4 on input line 294.
+Package textcomp Info: Setting pzc sub-encoding to TS1/4 on input line 295.
+Package textcomp Info: Setting bch sub-encoding to TS1/4 on input line 296.
+Package textcomp Info: Setting put sub-encoding to TS1/5 on input line 297.
+Package textcomp Info: Setting uag sub-encoding to TS1/5 on input line 298.
+Package textcomp Info: Setting ugq sub-encoding to TS1/5 on input line 299.
+Package textcomp Info: Setting ul8 sub-encoding to TS1/4 on input line 300.
+Package textcomp Info: Setting ul9 sub-encoding to TS1/4 on input line 301.
+Package textcomp Info: Setting augie sub-encoding to TS1/5 on input line 302.
+Package textcomp Info: Setting dayrom sub-encoding to TS1/3 on input line 303.
+Package textcomp Info: Setting dayroms sub-encoding to TS1/3 on input line 304.
+
+Package textcomp Info: Setting pxr sub-encoding to TS1/0 on input line 305.
+Package textcomp Info: Setting pxss sub-encoding to TS1/0 on input line 306.
+Package textcomp Info: Setting pxtt sub-encoding to TS1/0 on input line 307.
+Package textcomp Info: Setting txr sub-encoding to TS1/0 on input line 308.
+Package textcomp Info: Setting txss sub-encoding to TS1/0 on input line 309.
+Package textcomp Info: Setting txtt sub-encoding to TS1/0 on input line 310.
+Package textcomp Info: Setting lmr sub-encoding to TS1/0 on input line 311.
+Package textcomp Info: Setting lmdh sub-encoding to TS1/0 on input line 312.
+Package textcomp Info: Setting lmss sub-encoding to TS1/0 on input line 313.
+Package textcomp Info: Setting lmssq sub-encoding to TS1/0 on input line 314.
+Package textcomp Info: Setting lmvtt sub-encoding to TS1/0 on input line 315.
+Package textcomp Info: Setting qhv sub-encoding to TS1/0 on input line 316.
+Package textcomp Info: Setting qag sub-encoding to TS1/0 on input line 317.
+Package textcomp Info: Setting qbk sub-encoding to TS1/0 on input line 318.
+Package textcomp Info: Setting qcr sub-encoding to TS1/0 on input line 319.
+Package textcomp Info: Setting qcs sub-encoding to TS1/0 on input line 320.
+Package textcomp Info: Setting qpl sub-encoding to TS1/0 on input line 321.
+Package textcomp Info: Setting qtm sub-encoding to TS1/0 on input line 322.
+Package textcomp Info: Setting qzc sub-encoding to TS1/0 on input line 323.
+Package textcomp Info: Setting qhvc sub-encoding to TS1/0 on input line 324.
+Package textcomp Info: Setting futs sub-encoding to TS1/4 on input line 325.
+Package textcomp Info: Setting futx sub-encoding to TS1/4 on input line 326.
+Package textcomp Info: Setting futj sub-encoding to TS1/4 on input line 327.
+Package textcomp Info: Setting hlh sub-encoding to TS1/3 on input line 328.
+Package textcomp Info: Setting hls sub-encoding to TS1/3 on input line 329.
+Package textcomp Info: Setting hlst sub-encoding to TS1/3 on input line 330.
+Package textcomp Info: Setting hlct sub-encoding to TS1/5 on input line 331.
+Package textcomp Info: Setting hlx sub-encoding to TS1/5 on input line 332.
+Package textcomp Info: Setting hlce sub-encoding to TS1/5 on input line 333.
+Package textcomp Info: Setting hlcn sub-encoding to TS1/5 on input line 334.
+Package textcomp Info: Setting hlcw sub-encoding to TS1/5 on input line 335.
+Package textcomp Info: Setting hlcf sub-encoding to TS1/5 on input line 336.
+Package textcomp Info: Setting pplx sub-encoding to TS1/3 on input line 337.
+Package textcomp Info: Setting pplj sub-encoding to TS1/3 on input line 338.
+Package textcomp Info: Setting ptmx sub-encoding to TS1/4 on input line 339.
+Package textcomp Info: Setting ptmj sub-encoding to TS1/4 on input line 340.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/listings/listings.sty
+\lst@mode=\count97
+\lst@gtempboxa=\box32
+\lst@token=\toks21
+\lst@length=\count98
+\lst@currlwidth=\dimen123
+\lst@column=\count99
+\lst@pos=\count100
+\lst@lostspace=\dimen124
+\lst@width=\dimen125
+\lst@newlines=\count101
+\lst@lineno=\count102
+\lst@maxwidth=\dimen126
+
+(/usr/share/texlive/texmf-dist/tex/latex/listings/lstmisc.sty
+File: lstmisc.sty 2013/08/26 1.5b (Carsten Heinz)
+\c@lstnumber=\count103
+\lst@skipnumbers=\count104
+\lst@framebox=\box33
+)
+(/usr/share/texlive/texmf-dist/tex/latex/listings/listings.cfg
+File: listings.cfg 2013/08/26 1.5b listings configuration
+))
+Package: listings 2013/08/26 1.5b (Carsten Heinz)
+
+(/usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
+File: lstlang1.sty 2013/08/26 1.5b listings language file
+)
+(/usr/share/texlive/texmf-dist/tex/latex/listings/lstmisc.sty
+File: lstmisc.sty 2013/08/26 1.5b (Carsten Heinz)
+) (./pgxc.aux
+(./changeHistoryXC.aux) (./architecture.aux) (./sourcetree.aux)
+(./documentation.aux) (./internalnodes.aux) (./configureDatabase.aux)
+(./maintenanceDatabase.aux) (./clusterManagement.aux)
+(./databaseObjectAndDDL.aux) (./txnManagement.aux) (./backendTxnMgmt.aux)
+(./plannerAndExecutor.aux) (./DML.aux) (./functions.aux) (./misc.aux)
+(./regression.aux) (./benchmark.aux) (./pgxcCtl.aux))
+\openout1 = `pgxc.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 165.
+LaTeX Font Info:    ... okay on input line 165.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 165.
+LaTeX Font Info:    ... okay on input line 165.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 165.
+LaTeX Font Info:    ... okay on input line 165.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 165.
+LaTeX Font Info:    ... okay on input line 165.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 165.
+LaTeX Font Info:    ... okay on input line 165.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 165.
+LaTeX Font Info:    ... okay on input line 165.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 165.
+LaTeX Font Info:    Try loading font information for TS1+cmr on input line 165.
+
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
+File: ts1cmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    ... okay on input line 165.
+\c@lstlisting=\count105
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 167.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 167.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 167.
+ [1
+
+
+] [2
+
+] (./pgxc.toc
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 5.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 5.
+
+[3]
+LaTeX Font Info:    Try loading font information for T1+cmtt on input line 49.
+ (/usr/share/texlive/texmf-dist/tex/latex/base/t1cmtt.fd
+File: t1cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
+) [4] [5] [6]
+[7] [8] [9])
+\tf@toc=\write4
+\openout4 = `pgxc.toc'.
+
+ [10]
+File: 88x31.eps Graphic file (type eps)
+ <88x31.eps> [1
+
+
+] [2] [3]
+\openout2 = `changeHistoryXC.aux'.
+
+ (./changeHistoryXC.tex [4
+
+
+]) [5]
+[6
+
+
+] [1
+
+] [2]
+Chapter 1.
+[3
+
+]
+\openout2 = `architecture.aux'.
+
+ (./architecture.tex (./arch_doc/archcontents.tex
+File: arch_doc/ArchFig_01.eps Graphic file (type eps)
+ <arch_doc/ArchFig_01.eps>
+[4
+
+]
+Underfull \vbox (badness 6559) has occurred while \output is active []
+
+ [5]
+File: arch_doc/ArchFig_01_1.eps Graphic file (type eps)
+
+<arch_doc/ArchFig_01_1.eps>
+Underfull \hbox (badness 10000) in paragraph at lines 180--180
+[][]$\T1/cmtt/m/n/8 http : / / www . ciobriefings . com / Publications / WhiteP
+apers / DesigningtheStarSchemaDatabase / tabid / 101 /
+ []
+
+File: arch_doc/star.eps Graphic file (type eps)
+<arch_doc/star.eps> [6] [7] [8]
+File: arch_doc/Arch_doc_fig_3_3.eps Graphic file (type eps)
+ <arch_doc/Arch_doc_fig_3_3.eps>
+File: arch_doc/Arch_doc_fig_3_4.eps Graphic file (type eps)
+
+<arch_doc/Arch_doc_fig_3_4.eps>
+File: arch_doc/Arch_doc_fig_3_5.eps Graphic file (type eps)
+ <arch_doc/Arch_doc_fig_3_5.eps> [9] [10]
+Underfull \vbox (badness 2980) has occurred while \output is active []
+
+ [11]
+[12]
+File: arch_doc/ArchFig_03_6.eps Graphic file (type eps)
+ <arch_doc/ArchFig_03_6.eps>
+File: arch_doc/ArchFig_03_7.eps Graphic file (type eps)
+ <arch_doc/ArchFig_03_7.eps>
+Underfull \vbox (badness 5245) has occurred while \output is active []
+
+ [13]
+[14] [15]
+File: arch_doc/ArchFig_04_2.eps Graphic file (type eps)
+ <arch_doc/ArchFig_04_2.eps> [16] [17]
+File: arch_doc/ArchFig_04_3.eps Graphic file (type eps)
+ <arch_doc/ArchFig_04_3.eps>
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [18]
+File: arch_doc/ArchFig_03.eps Graphic file (type eps)
+
+<arch_doc/ArchFig_03.eps>
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [19]
+[20]
+File: arch_doc/ArchFig_04.eps Graphic file (type eps)
+ <arch_doc/ArchFig_04.eps> [21]
+File: arch_doc/ArchFig_05.eps Graphic file (type eps)
+ <arch_doc/ArchFig_05.eps> [22] [23]
+File: arch_doc/ArchFig_14_1.eps Graphic file (type eps)
+
+<arch_doc/ArchFig_14_1.eps> [24]
+File: arch_doc/ArchFig_14_2.eps Graphic file (type eps)
+ <arch_doc/ArchFig_14_2.eps> [25] [26]
+File: arch_doc/ArchFig_14_3.eps Graphic file (type eps)
+
+<arch_doc/ArchFig_14_3.eps>
+File: arch_doc/ArchFig_14_4.eps Graphic file (type eps)
+ <arch_doc/ArchFig_14_4.eps> [27] [28]
+File: arch_doc/ArchFig_13.eps Graphic file (type eps)
+
+<arch_doc/ArchFig_13.eps>
+Underfull \hbox (badness 10000) in paragraph at lines 1122--1122
+[]|\T1/cmr/m/n/10 Coordinator/Datanode $\OMS/cmsy/m/n/10 ,$
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1123--1123
+[]|\T1/cmr/m/n/10 Coordinator/Datanode $\OMS/cmsy/m/n/10 ,$
+ []
+
+
+Overfull \hbox (3.2831pt too wide) in paragraph at lines 1118--1125
+ [] 
+ []
+
+[29] [30])) [31] [32
+
+
+]
+Chapter 2.
+[33]
+\openout2 = `sourcetree.aux'.
+
+ (./sourcetree.tex
+Underfull \hbox (badness 10000) in paragraph at lines 28--28
+[]|$\T1/cmtt/m/n/10 src / backend / pgxc / xc _
+ []
+
+
+Overfull \hbox (3.14658pt too wide) in paragraph at lines 15--37
+ [] 
+ []
+
+
+Underfull \hbox (badness 2875) in paragraph at lines 57--58
+[]|\T1/cmr/m/n/10 Postgres-XC ad-di-tional mod-ule of dis-
+ []
+
+
+Overfull \hbox (3.14659pt too wide) in paragraph at lines 51--66
+ [] 
+ []
+
+[34
+
+]
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <8> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 89.
+
+Underfull \vbox (badness 3250) has occurred while \output is active []
+
+ [35])
+[36]
+Chapter 3.
+[37
+
+
+]
+\openout2 = `documentation.aux'.
+
+ (./documentation.tex [38
+
+]) [39] [40
+
+
+]
+Chapter 4.
+[41]
+\openout2 = `internalnodes.aux'.
+
+ (./internalnodes.tex [42
+
+]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [43]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [44]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [45]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [46]
+[47] [48] [49] [50]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [51]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [52])
+[53] [54
+
+
+]
+Chapter 5.
+(./additionalCoreModules.tex
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <12> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 28.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [55]
+[56] [57] [58] [59]
+Overfull \hbox (9.6813pt too wide) in paragraph at lines 320--353
+ [] 
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [60]
+Underfull \vbox (badness 2119) has occurred while \output is active []
+
+ [61]
+[62] [63] [64]
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 616.
+
+Underfull \vbox (badness 2088) has occurred while \output is active []
+
+ [65]
+[66] [67] [68] [69]
+Underfull \vbox (badness 4242) has occurred while \output is active []
+
+ [70]
+[71]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [72]
+Underfull \vbox (badness 7468) has occurred while \output is active []
+
+ [73]
+[74] [75]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [76]
+[77]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [78]
+[79] [80] [81] [82]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [83]
+[84] [85] [86] [87]
+Overfull \hbox (29.82098pt too wide) in paragraph at lines 1907--1922
+ [] 
+ []
+
+[88]
+Underfull \hbox (badness 1629) in paragraph at lines 1964--1965
+[]|\T1/cmr/m/n/8 Removed many un-used er-ror in-for-ma-tion
+ []
+
+
+Overfull \hbox (9.07912pt too wide) in alignment at lines 1947--1986
+ [] [] [] 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1992--1995
+[]|$\T1/cmtt/m/n/8 pq _ send _ ascii _ string$ \T1/cmr/m/n/8 ap-pends a null-
+ []
+
+
+Underfull \hbox (badness 3815) in paragraph at lines 1992--1995
+\T1/cmr/m/n/8 terminated text string with by-pass-esing
+ []
+
+
+Underfull \hbox (badness 1496) in paragraph at lines 1992--1995
+\T1/cmr/m/n/8 en-cod-ing con-ver-sion, in-stead just silently
+ []
+
+
+Underfull \hbox (badness 3260) in paragraph at lines 1992--1995
+\T1/cmr/m/n/8 re-plac-ing any non-7-bit-ASCII char-ac-ters
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2000--2001
+[]|\T1/cmr/m/n/8 Allocate new mem-ory con-text in
+ []
+
+
+Overfull \hbox (9.07912pt too wide) in alignment at lines 1986--2012
+ [] [] [] 
+ []
+
+[89]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [90]
+[91] [92] [93] [94] [95] [96] [97]
+Underfull \vbox (badness 5787) has occurred while \output is active []
+
+ [98]
+[99]
+Underfull \hbox (badness 10000) in paragraph at lines 2639--2639
+[]|$\T1/cmtt/m/n/7 MSG _ NODE _ BEGIN _ REPLICATION _
+ []
+
+
+Overfull \hbox (13.89944pt too wide) in paragraph at lines 2639--2640
+[]|$\T1/cmtt/m/n/7 ProcessBeginReplicationInitialSyncRequest()$| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2640--2640
+[]|$\T1/cmtt/m/n/7 MSG _ NODE _ END _ REPLICATION _
+ []
+
+
+Overfull \hbox (6.46378pt too wide) in paragraph at lines 2640--2641
+[]|$\T1/cmtt/m/n/7 ProcessEndReplicationInitialSyncRequest()$| 
+ []
+
+
+Overfull \hbox (13.89944pt too wide) in paragraph at lines 2644--2645
+[]|$\T1/cmtt/m/n/7 ProcessBkupBeginTransactionGetGXIDCommand()$| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2645--2645
+[]|$\T1/cmtt/m/n/7 MSG _ TXN _ BEGIN _ GETGXID _
+ []
+
+
+Overfull \hbox (36.20645pt too wide) in paragraph at lines 2645--2646
+[]|$\T1/cmtt/m/n/7 ProcessBeginTransactionGetGXIDAutovacuumCommand()$| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2646--2646
+[]|$\T1/cmtt/m/n/7 MSG _ BKUP _ TXN _ BEGIN _ GETGXID _
+ []
+
+
+Overfull \hbox (51.07779pt too wide) in paragraph at lines 2646--2647
+[]|$\T1/cmtt/m/n/7 ProcessBkupBeginTransactionGetGXIDAutovacuumCommand()$| 
+ []
+
+
+Overfull \hbox (17.61728pt too wide) in paragraph at lines 2647--2648
+[]|$\T1/cmtt/m/n/7 ProcessBeginTransactionGetGXIDCommandMulti()$| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2648--2648
+[]|$\T1/cmtt/m/n/7 MSG _ BKUP _ TXN _ BEGIN _ GETGXID _
+ []
+
+
+Overfull \hbox (32.48862pt too wide) in paragraph at lines 2648--2649
+[]|$\T1/cmtt/m/n/7 ProcessBkupBeginTransactionGetGXIDCommandMulti()$| 
+ []
+
+
+Overfull \hbox (2.74594pt too wide) in paragraph at lines 2649--2650
+[]|$\T1/cmtt/m/n/7 ProcessStartPreparedTransactionCommand()$| 
+ []
+
+
+Overfull \hbox (2.74594pt too wide) in paragraph at lines 2650--2651
+[]|$\T1/cmtt/m/n/7 ProcessStartPreparedTransactionCommand()$| 
+ []
+
+
+Overfull \hbox (6.46378pt too wide) in paragraph at lines 2655--2656
+[]|$\T1/cmtt/m/n/7 ProcessCommitPreparedTransactionCommand()$| 
+ []
+
+
+Overfull \hbox (6.46378pt too wide) in paragraph at lines 2656--2657
+[]|$\T1/cmtt/m/n/7 ProcessCommitPreparedTransactionCommand()$| 
+ []
+
+
+Overfull \hbox (2.74594pt too wide) in paragraph at lines 2661--2662
+[]|$\T1/cmtt/m/n/7 ProcessRollbackTransactionCommandMulti()$| 
+ []
+
+
+Overfull \hbox (2.74594pt too wide) in paragraph at lines 2662--2663
+[]|$\T1/cmtt/m/n/7 ProcessRollbackTransactionCommandMulti()$| 
+ []
+
+[100]
+File: add_gtmtxn.eps Graphic file (type eps)
+ <add_gtmtxn.eps> [101]
+Overfull \hbox (15.17996pt too wide) in paragraph at lines 2788--2801
+ [] 
+ []
+
+[102]
+Overfull \hbox (14.93002pt too wide) in paragraph at lines 2853--2861
+ [] 
+ []
+
+
+Underfull \hbox (badness 4013) in paragraph at lines 2867--2868
+[]\T1/cmr/m/n/10 This func-tion con-verts GXID to the han-dle and del-e-gates i
+n-ter-nal logic to $\T1/cmtt/m/n/10 GTM _
+ []
+
+[103]
+Underfull \hbox (badness 4013) in paragraph at lines 2915--2916
+[]\T1/cmr/m/n/10 This func-tion con-verts GXID to the han-dle and del-e-gates i
+n-ter-nal logic to $\T1/cmtt/m/n/10 GTM _
+ []
+
+[104]
+Underfull \hbox (badness 4013) in paragraph at lines 2960--2961
+[]\T1/cmr/m/n/10 This func-tion con-verts GXID to the han-dle and del-e-gates i
+n-ter-nal logic to $\T1/cmtt/m/n/10 GTM _
+ []
+
+[105] [106] [107]
+Underfull \vbox (badness 1377) has occurred while \output is active []
+
+ [108]
+[109] [110] [111]
+Underfull \vbox (badness 4108) has occurred while \output is active []
+
+ [112]
+Underfull \vbox (badness 7291) has occurred while \output is active []
+
+ [113]
+[114] [115] [116] [117]
+Overfull \hbox (9.6813pt too wide) in paragraph at lines 3728--3732
+ [] 
+ []
+
+[118] [119] [120] [121]
+Underfull \hbox (badness 10000) in paragraph at lines 3994--4009
+[]$\T1/cmtt/m/n/10 GTM _ ThreadMain()$ \T1/cmr/m/n/10 reads mes-sages from back
+-ends with $\T1/cmtt/m/n/10 ReadCommand()$ \T1/cmr/m/n/10 and calls
+ []
+
+
+Underfull \hbox (badness 2671) in paragraph at lines 3994--4009
+\T1/cmtt/m/n/10 ProcessCommand()$ \T1/cmr/m/n/10 for each mes-sage to pro-cess 
+the ``com-mand'' mes-sage from GTM
+ []
+
+[122]
+Underfull \hbox (badness 10000) in paragraph at lines 4042--4042
+[]|$\T1/cmtt/m/n/7 MSG _ TXN _ BEGIN _ GETGXID _
+ []
+
+[123] [124]
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <14.4> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 4193.
+ (./pgxc_ctl.tex [125]
+Underfull \hbox (badness 1803) in paragraph at lines 81--83
+[]|\T1/cmr/m/n/10 Module holds con-fig-u-ra-tion tem-plate. Gen-er-ated by $\T1
+/cmtt/m/n/10 make _
+ []
+
+[126] [127] [128]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [129]
+Underfull \vbox (badness 1264) has occurred while \output is active []
+
+ [130]
+Underfull \vbox (badness 1975) has occurred while \output is active []
+
+ [131]
+[132]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [133]
+[134] [135] [136] [137] [138] [139] [140] [141] [142]
+Underfull \hbox (badness 1152) in paragraph at lines 1010--1013
+[]\T1/cmr/m/n/10 Performs one co-or-di-na-tor slave pro-mo-tion to mas-ter. Thi
+s is called from $\T1/cmtt/m/n/10 failover _
+ []
+
+[143] [144]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [145]
+[146] [147] [148]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [149]
+[150] [151] [152] [153] [154] [155]
+Underfull \vbox (badness 2932) has occurred while \output is active []
+
+ [156]
+[157] [158]
+Underfull \vbox (badness 4279) has occurred while \output is active []
+
+ [159]
+[160]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [161]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [162])
+(./pgxc_clean.tex [163] [164]
+Underfull \hbox (badness 6542) in paragraph at lines 152--154
+ \T1/cmr/bx/n/10 While prop-a-gat-ing \T1/cmtt/m/n/10 PREPARE TRANSACTION \T1/c
+mr/m/n/10 If some node crashes be-fore \T1/cmtt/m/n/10 PREPARE
+ []
+
+[165]) (./pgxc_monitor.tex)
+Underfull \vbox (badness 1178) has occurred while \output is active []
+
+ [166]
+(./pgxc_ddl.tex)) [167] [168
+
+]
+Chapter 6.
+[169]
+\openout2 = `configureDatabase.aux'.
+
+ (./configureDatabase.tex [170
+
+]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [171])
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [172]
+[173] [174
+
+
+]
+Chapter 7.
+[175]
+\openout2 = `maintenanceDatabase.aux'.
+
+ (./maintenanceDatabase.tex
+Underfull \vbox (badness 2080) has occurred while \output is active []
+
+ [176
+
+])
+[177] [178
+
+
+]
+Chapter 8.
+[179]
+\openout2 = `clusterManagement.aux'.
+
+ (./clusterManagement.tex
+Underfull \hbox (badness 10000) in paragraph at lines 35--37
+[]|\T1/cmr/m/n/10 Changed to rec-og-nize
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 35--37
+\T1/cmtt/m/n/10 CreateNodeStmt$\T1/cmr/m/n/10 , $\T1/cmtt/m/n/10 AlterNodeStmt$
+
+ []
+
+[180
+
+] [181] [182] [183]
+Underfull \hbox (badness 6188) in paragraph at lines 322--323
+[]|\T1/cmr/m/n/10 Added sup-port for $\T1/cmtt/m/n/10 CreateGroupStmt$ \T1/cmr/
+m/n/10 and
+ []
+
+
+Underfull \hbox (badness 6188) in paragraph at lines 324--325
+[]|\T1/cmr/m/n/10 Added sup-port for $\T1/cmtt/m/n/10 CreateGroupStmt$ \T1/cmr/
+m/n/10 and
+ []
+
+
+Underfull \hbox (badness 6188) in paragraph at lines 326--327
+[]|\T1/cmr/m/n/10 Added sup-port for $\T1/cmtt/m/n/10 CreateGroupStmt$ \T1/cmr/
+m/n/10 and
+ []
+
+
+Overfull \hbox (19.21039pt too wide) in paragraph at lines 316--329
+ [] 
+ []
+
+[184] [185] [186]
+Overfull \hbox (6.89207pt too wide) in paragraph at lines 466--486
+ [] 
+ []
+
+[187] [188]) [189] [190
+
+
+]
+Chapter 9.
+[191]
+\openout2 = `databaseObjectAndDDL.aux'.
+
+ (./databaseObjectAndDDL.tex
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <7> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 32.
+ [192
+
+] (./tablespace.tex
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [193]
+[194]) (./matview.tex
+Underfull \hbox (badness 3471) in paragraph at lines 20--23
+\T1/cmr/m/n/10 state-ment is han-dled as a vari-ant of \T1/cmtt/m/n/10 CREATE T
+ABLE AS \T1/cmr/m/n/10 state-ment and han-dled by
+ []
+
+[195] [196]) (./upd_views.tex) (./trigger.tex
+Underfull \hbox (badness 4144) in paragraph at lines 14--18
+\T1/cmtt/m/n/10 CREATE TRIGGER \T1/cmr/m/n/10 state-ment is parsed into $\T1/cm
+tt/m/n/10 CreateTrigStmt$ \T1/cmr/m/n/10 struc-ture and passed to
+ []
+
+[197]
+Underfull \hbox (badness 4792) in paragraph at lines 43--45
+\T1/cmr/m/n/10 This state-ment is han-dled by $\T1/cmtt/m/n/10 ExecDropStmt()$ 
+\T1/cmr/m/n/10 in $\T1/cmtt/m/n/10 utility\OML/cmm/m/it/10 :\T1/cmtt/m/n/10 c$ 
+\T1/cmr/m/n/10 and then passed to
+ []
+
+[198]) (./event_trigger.tex) [199]) [200]
+Chapter 10.
+[201
+
+
+]
+\openout2 = `txnManagement.aux'.
+
+ (./txnManagement.tex [202
+
+]
+Overfull \hbox (0.8552pt too wide) in paragraph at lines 134--134
+[]|$\T1/cmtt/m/n/10 BeginTranAutovacuumGTM()$| 
+ []
+
+[203]
+Underfull \hbox (badness 1603) in paragraph at lines 239--245
+\T1/cmr/m/n/10 to han-dle this pre-pared trans-ac-tion lo-cally. Next, it calls
+
+ []
+
+
+Underfull \hbox (badness 1215) in paragraph at lines 239--245
+\T1/cmr/m/n/10 aborted. Then it cleans up var-i-ous in-for-ma-tions. Fi-nally,
+ []
+
+
+Overfull \hbox (3.86032pt too wide) in paragraph at lines 212--247
+ [] 
+ []
+
+
+Underfull \vbox (badness 3590) has occurred while \output is active []
+
+ [204]
+[205] [206] [207] [208]
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <9> on input line 462.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [209]
+Underfull \hbox (badness 1014) in paragraph at lines 556--557
+[]|\T1/cmr/m/n/9 Commit mul-ti-ple run-ning or pre-pared
+ []
+
+[210]
+File: txn_gtmpxy.eps Graphic file (type eps)
+ <txn_gtmpxy.eps>
+Underfull \hbox (badness 2012) in paragraph at lines 599--608
+\T1/cmr/m/n/10 patch re-ceived mes-sage to \T1/cmtt/m/n/10 Process\T1/cmtt/m/it
+/10 XXXXXXXX\T1/cmtt/m/n/10 Command()\T1/cmr/m/n/10 . If the mes-sage is pack-a
+ble,
+ []
+
+[211]) [212]
+\openout2 = `backendTxnMgmt.aux'.
+
+ (./backendTxnMgmt.tex
+Underfull \hbox (badness 1635) in paragraph at lines 9--9
+[]\T1/cmr/bx/n/14.4 Transaction Man-age-ment at co-or-di-na-tor/-datan-ode
+ []
+
+[213
+
+
+] [214] [215] [216] [217] [218]) [219] [220
+
+
+]
+Chapter 11.
+[221]
+\openout2 = `plannerAndExecutor.aux'.
+
+ (./plannerAndExecutor.tex [222
+
+] [223]
+Underfull \hbox (badness 1320) in paragraph at lines 149--152
+[]\T1/cmr/m/n/10 For this ex-ten-sion, Postgres-XC in-tro-duced new func-tion l
+ayer called \T1/cmr/bx/n/10 col-lec-tor func-
+ []
+
+
+Underfull \hbox (badness 6995) in paragraph at lines 153--156
+[]\T1/cmr/m/n/10 Internally, for ex-am-ple, $\T1/cmtt/m/n/10 avg()$ \T1/cmr/m/n
+/10 func-tion def-i-ni-tion in the sys-tem cat-a-log is de-
+ []
+
+[224] [225]) [226]
+Chapter 12.
+[227
+
+
+]
+\openout2 = `DML.aux'.
+
+ (./DML.tex
+Underfull \hbox (badness 5908) in paragraph at lines 28--30
+[]\T1/cmr/m/n/10 So far, \T1/cmtt/m/n/10 RETURNING \T1/cmr/m/n/10 clause is han
+-dled as ship-pable in Postgres-XC, as found in
+ []
+
+[228
+
+]) [229] [230
+
+
+]
+Chapter 13.
+[231]
+\openout2 = `functions.aux'.
+
+ (./functions.tex) [232
+
+]
+Chapter 14.
+[233
+
+
+]
+\openout2 = `misc.aux'.
+
+ (./misc.tex [234
+
+] [235]) [236]
+Chapter 15.
+[237
+
+
+]
+\openout2 = `regression.aux'.
+
+ (./regression.tex
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <9> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 66.
+ [238
+
+]) [239] [240]
+Chapter 16.
+[241
+
+
+]
+\openout2 = `benchmark.aux'.
+
+ (./benchmark.tex
+Underfull \hbox (badness 2165) in paragraph at lines 42--44
+[]\T1/cmr/m/n/10 ($\T1/cmtt/m/n/10 ol _ o _ id$\T1/cmr/m/n/10 , $\T1/cmtt/m/n/1
+0 ol _ id$\T1/cmr/m/n/10 , $\T1/cmtt/m/n/10 ol _ c _ id$\T1/cmr/m/n/10 ) is the
+ pri-mary key for $\T1/cmtt/m/n/10 order _ line$ \T1/cmr/m/n/10 ta-ble ($\T1/cm
+tt/m/n/10 create _
+ []
+
+[242
+
+]) [243] [244
+
+
+] [245] [246]
+\openout2 = `pgxcCtl.aux'.
+
+ (./pgxcCtl.tex [247
+
+] [248
+
+]
+Chapter 17.
+[249] [250]
+Overfull \hbox (15.56424pt too wide) in paragraph at lines 164--165
+[][] 
+ []
+
+[251] [252]
+Underfull \vbox (badness 4899) has occurred while \output is active []
+
+ [253]
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <5> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 381.
+
+Underfull \vbox (badness 7256) has occurred while \output is active []
+
+ [254]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [255]
+Underfull \vbox (badness 1178) has occurred while \output is active []
+
+ [256]
+[257]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [258]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [259]
+[260]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [261]
+Underfull \hbox (badness 6675) in paragraph at lines 875--878
+[]\T1/cmr/m/n/10 This ar-ray spec-i-fies $\T1/cmtt/m/n/10 max _ wal _ senders$ 
+\T1/cmr/m/n/10 con-fig-u-ra-tion pa-ram-e-ter for each datan-ode's
+ []
+
+[262] [263] [264
+
+]
+Chapter 18.
+[265] [266] [267] [268]
+Chapter 19.
+[269
+
+] [270
+
+]
+Chapter 20.
+[271] [272
+
+]
+Chapter 21.
+[273] [274
+
+]
+Chapter 22.
+[275] [276
+
+]
+Chapter 23.
+[277] [278
+
+]
+Chapter 24.
+[279] [280] [281] [282
+
+]
+Chapter 25.
+[283]
+Underfull \hbox (badness 2671) in paragraph at lines 1527--1529
+[]\T1/cmr/m/n/10 Determine GTM proxy or GTM to use and up-date new co-or-di-na-
+tor mas-ter's
+ []
+
+[284] [285]
+Underfull \hbox (badness 4429) in paragraph at lines 1618--1620
+[]\T1/cmr/m/n/10 Determine GTM proxy or GTM to use and up-date new datan-ode ma
+s-ter's
+ []
+
+[286] [287] [288
+
+]
+Chapter 26.
+[289] [290]) [291] (./pgxc.aux (./changeHistoryXC.aux) (./architecture.aux)
+(./sourcetree.aux) (./documentation.aux) (./internalnodes.aux)
+(./configureDatabase.aux) (./maintenanceDatabase.aux) (./clusterManagement.aux)
+(./databaseObjectAndDDL.aux) (./txnManagement.aux) (./backendTxnMgmt.aux)
+(./plannerAndExecutor.aux) (./DML.aux) (./functions.aux) (./misc.aux)
+(./regression.aux) (./benchmark.aux) (./pgxcCtl.aux)) ) 
+Here is how much of TeX's memory you used:
+ 5054 strings out of 493305
+ 68682 string characters out of 6139897
+ 366538 words of memory out of 5000000
+ 8298 multiletter control sequences out of 15000+600000
+ 24593 words of font info for 54 fonts, out of 8000000 for 9000
+ 957 hyphenation exceptions out of 8191
+ 36i,15n,49p,249b,1620s stack positions out of 5000i,500n,10000p,200000b,80000s
+
+Output written on pgxc.dvi (307 pages, 796152 bytes).

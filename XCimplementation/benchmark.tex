@@ -1,0 +1,82 @@
+%
+% This file includes description of benchmark changes in Postgres-XC.
+%
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:dbtOne}DBT-1 Benchmark}
+
+  \XC{} uses DBT-1 as basic benchmark test to measure its performance for each build.
+  As described in the section~\ref{arch:dbt1} at page~\pageref{arch:dbt1}, 
+  distribution or replication option was added to each table based on
+  its characteristics of the size, update
+  frequency, and join operation with others.
+  
+  Outline of the table design is illustrated in Figure~\ref{archfig:15} in
+  page~\pageref{archfig:15}.
+  
+  Modified DBT-1 source code will be found in sourceforge reporitory with the url as
+  \url{git://git.code.sf.net/p/postgres-xc/dbt1 postgres-xc-dbt1}.
+  
+  Other major modification to the benchmark is as follows:
+  
+  \begin{itemize}		% Major modification in DBT-1 test.
+  	\item \file{author} table is replicated (\file{create_table.sql}).
+  	\item \file{country} table is replicated (\file{create_table.sql}).
+  	\item \file{address} table has additional column \file{addr_c_id} for its customer ID and
+			is hash-distributed using \file{addr_c_id} (\file{create_table.sql}).
+  	\item \file{customer} table is hash-distributed using \file{c_id} (customer ID)
+			(\file{create_tables.sql}).
+  	\item \file{item} table is replicated and does not have \file{i_stock} column
+			(\file{create_tables.sql}).
+  	\item \file{i_stock} column of \file{item} table is now in the new table \file{stock},
+			which is hash-distributed using \file{st_i_id} (stock item id) (\file{create_tables.sql}).
+  	\item \file{st_i_id} column is the primary key of \file{stock} table (\file{create_indexes.sql}).
+  	\item \file{orders} table is hash-distributed using \file{o_c_id} column (order cumstomer id)
+			(\file{create_tables.sql}).
+  	\item (\file{o_id}, \file{o_c_id}) is the primary key for \file{orders} table
+			(\file{create_indexes.sql}).
+  	\item \file{orders} table has additional index over \file{i_o_c_id} column.
+  	\item \file{order_line} table has additional column \file{ol_c_id} (order line cumstomer id) and
+			is hash-distributed using \file{ol_c_id} column (\file{create_tables.sql}).
+  	\item (\file{ol_o_id}, \file{ol_id}, \file{ol_c_id}) is the primary key for \file{order_line}
+			table (\file{create_indexes.sql}).
+  	\item \file{cc_xacts} table has additional column \file{cx_c_id} (cc customer id), which is
+			hash-distributed using \file{cx_c_id} (\file{create_tables.sql}).
+  	\item (\file{cx_o_id}, \file{cx_c_id}) is the primary key of \file{cc_xact} table
+			(\file{create_indexes.sql}).
+  	\item \file{shopping_cart} table is hash-distributed using \file{sc_id} (shopping cart id).
+  	\item \file{shopping_cart_line} table has additional column \file{scl_c_id}
+		(shopping cart customer id), which is hash-distributed using \file{scl_sc_id}
+		(shopping cart id) (\file{create_tables.sql}).
+  	\item Foreign key from \file{adress} table to \file{customer} table was modified to just
+			an index (\file{create_fk.sql}).
+  	\item Foreign key from \file{order_line} table to \file{orders} table was modified
+  		(\file{create_fk.sql}).
+  	\item Foreign key from \file{stock} table to \file{item} table was added.
+  	\item Message modified to reflect changes in table deesign.
+  		Modifications are indicated by comments with ``\file{pgxc}.''
+  	\item SQL statement modified to reflect changes in table design.
+  		Modifications are indicated by comments with ``\file{pgxc}.''
+  	\item Original ODBC interface to the database was changed to libpq
+		(\file{libpq_com} and \file{inc_psql_libpq} directories).
+  	\item \file{dbdriver} files are modified according to the interface change from ODBC to libpq.
+   		Changes are indicated with \file{\#ifdef} directive using \file{LIBPQ} (\file{eu.c} and \file{main.c}).
+  \end{itemize}
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:pgbench}Pgbench}
+
+  Modification to pgbench benchmark is as follows:
+  
+  \begin{itemize}
+	  \item For write benchmark, each table was distributed by modulo using bid.
+	  		The backend to choose modulo, not hash, is that the number of bid value is relatively
+			small and it is not easy to have a good balance of each datanode workload.
+	  \item For read benchmark, each table was replicated.
+  \end{itemize}
+
+  The above changes are reasonable because it is a commo practice to have different
+  table design and arrangement for different workloads.
+

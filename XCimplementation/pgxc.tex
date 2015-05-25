@@ -1,0 +1,450 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This is a report of Postgres-XC concept, architecture, implementation and achievements.
+%
+% Author: Koichi Suzuki and Masataka Saito, NTT DATA Intellilink
+%
+% This can be disbtributed under Createve Commons Attribution-NonCommertial-SharaAlike
+% 4.0 International License.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%============= Overall Document Setting ========================================
+
+% \documentclass{jarticle}
+\documentclass[10pt,a4paper]{book}
+
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{array, multirow, longtable}
+\usepackage{fancyhdr}
+\usepackage{fancybox}
+\usepackage{booktabs}
+\usepackage{url}
+
+% Macro for long path name.
+% Taken from http://www.biwako.shiga-u.ac.jp/sensei/kumazawa/tex/url.html
+\newcommand{\file}{\begingroup%
+	  \def\UrlBreaks{\do\\\do\/\do\_\do\-\do\+\do\=}%
+		    \Url}
+
+%=========== Additional symbols ==============================
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+
+%========== For source code listings. ========================
+
+\usepackage{listings}
+\lstset{language=c,
+%  basicstyle=\ttfamily\scriptsize,
+  basicstyle=\ttfamily\footnotesize,
+%  commentstyle=\textit,
+  commentstyle=\ttfamily,
+%  classoffset=1,
+  keywordstyle=\bfseries,
+  frame=tRBl,
+  framesep=5pt,
+  showstringspaces=false,
+%  numbers=left,
+%  stepnumber=1,
+%  numberstyle=\tiny,
+  tabsize=4
+}
+
+%
+% ===========================================
+%    Version
+%
+\newcommand{\ThisVersion}{Version~1.0}
+\newcommand{\ReleaseDate}{September~10$^{th}$, 2014}
+
+% ============================================
+%    Page Format
+%
+\addtolength{\textwidth}{0.8in}
+\addtolength{\textwidth}{0.5cm}
+%\setlength{\topmargin}{0in}
+%\addtolength{\textheight}{0.5in}
+%\setlength{\oddsidemargin}{0.3in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{8pt}
+\setlength{\footskip}{1.2cm}
+\setlength{\oddsidemargin}{2cm}
+\setlength{\evensidemargin}{0cm}
+\sloppy
+
+%
+% ==== Header ==================
+%
+\newcommand\Author[0]{Koichi Suzuki and Masataka Saito}
+\newcommand\Auth[0]{K.{}Suzuki and M.{}Saito}
+\pagestyle{fancy} \fancyhf{}
+%\chead{\ThisVersion\quad\ReleaseDate}
+% \rhead{\leftmark}
+% \rhead{\ReleaseDate}
+\lhead{\rightmark}
+%\cfoot{Page~\thepage}
+\cfoot{Page~\thepage}
+\rfoot{\ThisVersion}
+%\lfoot{\copyright\Author}
+\lfoot{\Auth}
+
+%
+% ===========================================
+%    Commonly used terms
+
+\newcommand{\XC}{Postgres-XC}
+\newcommand{\PG}{PostgreSQL}
+\newcommand{\NY}{(Not implemented yet)}
+\newcommand{\myjob}{Support Service of Distributed DBMS Evolvement Strategy Planning}
+
+%
+% =========================================
+%	Commonly used macros
+%
+%\newcommand{\FUNC}[1]{\paragraph*{\file{#1}}}	% Function description
+%\newcommand{\FUNC}[1]{\vspace{13pt}{\large\file{#1}}\vspace{-3pt}}	% Function description
+\newcommand{\FUNC}[1]{\vspace{13pt}{\file{#1}}\vspace{-3pt}}	% Function description
+%\newcommand{\Variable}[1]{\paragraph*{\file{#1} variable}} % Variable description
+%\newcommand{\Variable}[1]{\vspace{13pt}{{\large\file{#1} variable:}}\vspace{-3pt} } % Variable description
+\newcommand{\Variable}[1]{\vspace{13pt}{{\file{#1} variable:}}\vspace{-3pt} } % Variable description
+%\newcommand{\GUC}[3]{\paragraph*{\file{#1} \quad type:\file{#2};  \quad default:\file{#3}}} % GUC
+%\newcommand{\GUC}[3]{\vspace{13pt}{{\large\file{#1}} \quad type: \file{#2};  \quad default: \file{#3}}\vspace{-3pt} } % GUC
+\newcommand{\GUC}[3]{\vspace{13pt}{{\file{#1}} \quad type: \file{#2};  \quad default: \file{#3}}\vspace{-3pt} } % GUC
+\newcommand{\para}[1]{\par\vspace{5pt}\textbf{#1}\par}
+
+%
+% Macros for function reference table.
+%
+\newcommand{\FuncRefHdr}{
+	\vspace{-16pt}
+	\begin{center}
+	\begin{tabular}[htp]{lp{0.5\hsize}} \\\hline
+	Caller&File \& Description\\ \hline\vspace{3pt}
+}
+\newcommand{\FuncRefTrailor}{
+\end{tabular}
+\end{center}
+}
+\newcommand{\FuncRef}[3]{\file{#1}&\parbox[t]{\hsize}{\raggedright\file{#2}\\#3}}
+
+
+%
+% Macros to describe structure members.
+%
+\newcommand{\StructMemberHdr}[1]{
+	\pagebreak[1]
+	\begin{center}
+	\file{#1} structure members\nopagebreak\\ \nopagebreak\vspace{5pt}\nopagebreak
+	\begin{tabular}{lp{0.6\hsize}} \hline
+	Member Name & Description\\ \hline
+}
+\newcommand{\AdditionalStructMemberHdr}[1]{
+	\pagebreak[1]
+	\begin{center}
+	Additional members of \file{#1} structure\nopagebreak\\ \nopagebreak\vspace{5pt}\nopagebreak
+	\begin{tabular}{lp{0.6\hsize}} \hline
+	Member Name & Description\\ \hline
+}
+\newcommand{\StructMember}[3]{\file{#1} & \parbox[t]{\hsize}{\raggedright Type: \file{#2}; \quad #3} \\[5pt]}
+\newcommand{\StructMemberTrailor}{\hline \end{tabular}\end{center}}
+
+%
+% =========================================
+%	Make subsection number visible
+\setcounter{secnumdepth}{3}
+
+% ============================================
+%    Title, etc.
+%
+\title{\XC{} Concept, Implementation and Achievements}
+\date{\ReleaseDate{}}
+\author{\Author}
+%
+% ============================================
+
+\begin{document}
+
+\maketitle
+
+\newpage
+\tableofcontents
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Front matter, preface etc.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\frontmatter
+
+\chapter{Preface}
+
+\XC{} research and development work started in NTT DATA Corporation at around the year of 2002,
+as RiTaDB, to achieve horizontally scalable database system based on shared-nothing architecture.
+
+\XC{} implemented transparent global transaction management from the very beginning, but did not
+have consistent updating capability for replicated tables.
+
+After several years, RiTaDB was renamed to \XC{} as separate open source project derived from
+the latest version of \PG.
+Major achievements of \XC{} include horizontally-scalable PostgreSQL database cluster based on
+shared-nothing architecture, global transaction management over the whole cluster,
+table sharding and replication,
+query planner and executor to utilize parallerizm among cluster nodes, and so on.
+
+This book is a summary of the latest \XC{} implementation and its achievements.
+It is licensed under Creative Commmons
+Attribution-NonCommercial-ShareAlike 4.0 International License.
+
+\begin{flushright}
+	\includegraphics[width=0.15\hsize]{88x31.eps}
+\end{flushright}
+
+\section*{Acknowledgements}
+
+Authors of this book would like to express special thanks to contributors to \XC{} implementation.
+Among them, the following contributors work should be noted.
+
+\subsection*{Mason Sharp}
+
+Wrote initial version of backend global transaction management, planner and executor.
+
+\subsection*{Pavan Deolasee}
+
+Wrote initial GTM and GTM proxy.
+
+\subsection*{Andrei Martsinchyk}
+
+Wrote initial version of the pooler.
+
+\subsection*{Abbas Butt}
+
+Wrote online node addition/removal.
+Also wrote many extensions including \texttt{RETURNING}, \texttt{LATERAL} and \texttt{CURSOR}.
+
+\subsection*{Ashutosh Bapat}
+
+Wrote most of the planner extension.
+
+\subsection*{Amit Khandekar}
+
+Wrote \texttt{TRIGGER}.
+
+\subsection*{Ahsan Hadi}
+
+Provided excellent project management in India and Pakistan side.
+
+\subsection*{Michael Paquier}
+
+Wrote various code including DDL propagation, DB2 and pgbench benchmark, among others.
+He also contributed to clean up many bugs and codes.
+
+\subsection*{Takayuki Sudo}
+
+Built and maintained the buildfarm environment for \XC{} development, test and evaluation.
+
+\subsection*{Nikhil Sontakke}
+
+Contributed many GTM-related fixes.
+
+\subsection*{Tetsuo Sakata}
+
+Provided initial technical input to the project.
+
+\subsection*{Hitoshi Hemmi}
+
+Provided technical input and requirements to the project.
+
+\subsection*{Masaki Hisada}
+
+Provided technical input and requirements to the project.
+
+\include{changeHistoryXC}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Main matter
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\mainmatter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% PART 3: XC Technology Analysis
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\part{\label{part:analyzing}\XC{} Implementation}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Postgres-XC Architecture: Koichi -- done.
+\chapter{\label{chap:architecture}\XC{} Architecture}
+
+\include{architecture}
+
+% Postgres-XC Source code tree structure: Koichi -- done.
+\chapter{\label{chap:sourceTree}\XC{} source code tree structure}
+
+  The rest of this part describes major implementation details of \XC.
+  It is based upon the source code of \file{REL1_2_STABLE} branch of \XC{} git repository.
+  
+  In referring source file, directofy path may not be given or only a part of it may be
+  given if there's no ambiguity.
+
+\include{sourcetree}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Postgres-XC reference document source structure: Koichi -- done.
+\chapter{\label{chap:documentation}\XC{} Reference Document}
+
+\include{documentation}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Node extension (parser/planner): Koichi
+\chapter{\label{chap:internalnodes}Node Structure for Parser and Planner}
+
+  In \PG, internal information used in the parser, planner and executor is called \textbf{node}.
+  \PG{} defined many internal nodes for specific use to share internal status or information among
+  various internal modules.  
+  
+  This chapter describes additional node definition in \XC.
+
+\include{internalnodes}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Additional core modules: Koichi
+\chapter{\label{chap:additionalCoreModules}Additional Core Modules}
+
+This chapter describes implementation of \XC{} specific additional core modules found in \file{src/backend} and \file{src/gtm}.
+
+{\input {additionalCoreModules}}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:configureDatabase}Configure Database}
+
+\include{configureDatabase}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:maintenanceDatabase}Database Maintenance}
+
+\include{maintenanceDatabase}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:nodeManagement}Cluster Management}
+
+\include{clusterManagement}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Database Object and DDL: Koichi
+\chapter{\label{chap:DDL}Database Object and DDL}
+
+\include{databaseObjectAndDDL}
+
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%
+% GTM implementation: Masataka
+\chapter{\label{chap:txnManagement}Transaction Management}
+
+\include{txnManagement}
+
+\include{backendTxnMgmt}	% Koichi
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:plannerExecutor}Planner and Executor}
+
+\include{plannerAndExecutor}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:DML}DML}
+
+\include{DML}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:func}Session and system functions}
+
+\include{functions}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:misc}Miscellaneous Feature}
+
+\include{misc}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:regression}Regression Tests}
+
+\include{regression}
+
+
+%%%%%%%%% CHAPTER CHAPTER CHAPTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{\label{chap:benchmark}Benchmark Extension}
+
+\include{benchmark}
+
+% --- Figure insertion.  Use the following example as a template ---
+%\begin{figure}
+%\begin{center}
+%\includegraphics[width=\hsize]{Fig_01.eps}
+%\caption{\label{fig:1}\XC's synchronous multi-master configuration}
+%\end{center}
+%\end{figure}
+
+%\paragraph*{} % Heading but does not create TOC.
+
+%\section{}
+%\subsection{}
+
+%\begin{enumerate}
+%\item 
+%\item
+%\end{enumerate}
+
+%\subsection{Global Catalog}
+
+%\begin{itemize}
+%\item
+%\item
+%\end{itemize}
+
+%\begin{flushright}
+%\end{flushright}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% PART 4: PXXC Clusaer Operations (pgxc_ctl)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\part{\label{part:pgxcCtl}Postgres-XC Cluster Design, Configuration and Operation}
+
+\include{pgxcCtl}
+
+\end{document}

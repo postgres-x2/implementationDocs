@@ -1,0 +1,252 @@
+\contentsline {chapter}{Preface}{i}
+\contentsline {chapter}{Change History}{v}
+\contentsline {part}{I\hspace {1em}Postgres-XC{} Implementation}{1}
+\contentsline {chapter}{\numberline {1}Postgres-XC{} Architecture}{3}
+\contentsline {section}{\numberline {1.1}What is Postgres-XC?}{4}
+\contentsline {section}{\numberline {1.2}Postgres-XC's Goal}{5}
+\contentsline {section}{\numberline {1.3}How To Scale Out Both Reads And Writes?}{6}
+\contentsline {subsection}{\numberline {1.3.1}Parallelism In Postgres-XC}{6}
+\contentsline {subsection}{\numberline {1.3.2}Star Schema}{6}
+\contentsline {subsection}{\numberline {1.3.3}Replicated table update: Primary node}{9}
+\contentsline {subsection}{\numberline {1.3.4}DDL propagation}{11}
+\contentsline {subsection}{\numberline {1.3.5}System catalog for shard and replica}{12}
+\contentsline {subsection}{\numberline {1.3.6}Limitations coming from sharding and replication}{12}
+\contentsline {subsection}{\numberline {1.3.7}Postgres-XC's Global Transaction Management}{12}
+\contentsline {subsection}{\numberline {1.3.8}Statement based replication and sharding}{13}
+\contentsline {section}{\numberline {1.4}Postgres-XC{} Key Components}{13}
+\contentsline {subsection}{\numberline {1.4.1}GTM (Global Transaction Manager)}{13}
+\contentsline {subsubsection}{\numberline {1.4.1.1}How PostgreSQL Manages Transactions}{15}
+\contentsline {subsubsection}{\numberline {1.4.1.2}Making Transaction Management Global}{16}
+\contentsline {subsection}{\numberline {1.4.2}Coordinator}{18}
+\contentsline {subsection}{\numberline {1.4.3}Datanode}{18}
+\contentsline {subsection}{\numberline {1.4.4}Interaction Between Key Components}{19}
+\contentsline {section}{\numberline {1.5}Isn't GTM A Performance Bottleneck}{21}
+\contentsline {subsection}{\numberline {1.5.1}GTM Implementation without proxy}{22}
+\contentsline {subsection}{\numberline {1.5.2}GTM Proxy Implementation}{22}
+\contentsline {section}{\numberline {1.6}Performance And Stability}{24}
+\contentsline {subsection}{\numberline {1.6.1}DBT-1-Based Benchmark}{24}
+\contentsline {section}{\numberline {1.7}Test Result}{25}
+\contentsline {subsection}{\numberline {1.7.1}Throughput and Scalability}{27}
+\contentsline {subsection}{\numberline {1.7.2}CPU Consumption}{29}
+\contentsline {subsection}{\numberline {1.7.3}Network Workload}{29}
+\contentsline {subsection}{\numberline {1.7.4}Connection Handling}{31}
+\contentsline {subsection}{\numberline {1.7.5}High-Availability Consideration}{31}
+\contentsline {chapter}{\numberline {2}Postgres-XC{} source code tree structure}{33}
+\contentsline {section}{\numberline {2.1}Additional source directories}{34}
+\contentsline {section}{\numberline {2.2}Additional source file for Postgres-XC}{34}
+\contentsline {section}{\numberline {2.3}Modification to existing files}{34}
+\contentsline {section}{\numberline {2.4}Number of lines of the source}{36}
+\contentsline {chapter}{\numberline {3}Postgres-XC{} Reference Document}{37}
+\contentsline {section}{\numberline {3.1}Postgres-XC{} Reference Document Source Structure}{38}
+\contentsline {section}{\numberline {3.2}Postgres-XC{} Reference Documents}{39}
+\contentsline {chapter}{\numberline {4}Node Structure for Parser and Planner}{41}
+\contentsline {section}{\numberline {4.1}New nodes}{42}
+\contentsline {section}{\numberline {4.2}Modified Nodes}{48}
+\contentsline {section}{\numberline {4.3}Additional structure used in nodes}{50}
+\contentsline {section}{\numberline {4.4}Query Explanation}{53}
+\contentsline {chapter}{\numberline {5}Additional Core Modules}{55}
+\contentsline {section}{\numberline {5.1}Locator}{55}
+\contentsline {subsection}{\numberline {5.1.1}\texttt {locator.c}}{55}
+\contentsline {subsection}{\numberline {5.1.2}\texttt {redistrib.c}}{58}
+\contentsline {section}{\numberline {5.2}FQS: Fast query shipping module}{60}
+\contentsline {subsection}{\numberline {5.2.1}\texttt {pgxcship.c} file}{60}
+\contentsline {section}{\numberline {5.3}Postgres-XC{} specific planner module}{63}
+\contentsline {subsection}{\numberline {5.3.1}\texttt {pgxcpath.c} module}{63}
+\contentsline {subsection}{\numberline {5.3.2}\texttt {pgxcplan.c} module}{63}
+\contentsline {section}{\numberline {5.4}Connection pooler}{65}
+\contentsline {subsection}{\numberline {5.4.1}\texttt {poolmgr.c}}{65}
+\contentsline {subsection}{\numberline {5.4.2}\texttt {execRemote.c}}{67}
+\contentsline {subsection}{\numberline {5.4.3}\texttt {pgxcnode.c}}{76}
+\contentsline {subsection}{\numberline {5.4.4}\texttt {poolutils.c}}{87}
+\contentsline {section}{\numberline {5.5}GTM: Global Transaction Manager}{88}
+\contentsline {subsection}{\numberline {5.5.1}Source tree structure}{88}
+\contentsline {subsection}{\numberline {5.5.2}Utility functions}{89}
+\contentsline {subsubsection}{\numberline {5.5.2.1}Forked Utility Functions}{89}
+\contentsline {subsubsection}{\numberline {5.5.2.2}gtm\_serialize.c}{90}
+\contentsline {subsubsection}{\numberline {5.5.2.3}gtm\_serialize\_debug.c}{92}
+\contentsline {subsubsection}{\numberline {5.5.2.4}gtm\_utils.c}{93}
+\contentsline {subsubsection}{\numberline {5.5.2.5}gtm\_lock.c}{93}
+\contentsline {subsection}{\numberline {5.5.3}Common modules}{95}
+\contentsline {subsubsection}{\numberline {5.5.3.1}\texttt {register\_common.c}}{95}
+\contentsline {subsection}{\numberline {5.5.4}Main program}{98}
+\contentsline {subsubsection}{\numberline {5.5.4.1}main.c}{98}
+\contentsline {subsubsection}{\numberline {5.5.4.2}\texttt {gtm\_txn.c}}{101}
+\contentsline {subsubsection}{\numberline {5.5.4.3}gtm\_snap.c}{106}
+\contentsline {subsubsection}{\numberline {5.5.4.4}\texttt {gtm\_seq.c}}{108}
+\contentsline {subsubsection}{\numberline {5.5.4.5}\texttt {gtm\_thread.c}}{112}
+\contentsline {subsubsection}{\numberline {5.5.4.6}\texttt {gtm\_backup.c}}{114}
+\contentsline {subsubsection}{\numberline {5.5.4.7}\texttt {gtm\_standby.c}}{115}
+\contentsline {subsubsection}{\numberline {5.5.4.8}\texttt {gtm\_time.c}}{120}
+\contentsline {subsubsection}{\numberline {5.5.4.9}\texttt {replication.c}}{120}
+\contentsline {subsubsection}{\numberline {5.5.4.10}\texttt {gtm\_stat.c}}{120}
+\contentsline {subsubsection}{\numberline {5.5.4.11}\texttt {gtm\_stats.c}}{121}
+\contentsline {subsection}{\numberline {5.5.5}Configuration Modules}{121}
+\contentsline {section}{\numberline {5.6}GTM Proxy}{121}
+\contentsline {subsection}{\numberline {5.6.1}Utility functions}{121}
+\contentsline {subsubsection}{\numberline {5.6.1.1}\texttt {proxy\_utils.c}}{121}
+\contentsline {subsection}{\numberline {5.6.2}Main Program}{122}
+\contentsline {subsubsection}{\numberline {5.6.2.1}\texttt {proxy\_main.c}}{122}
+\contentsline {subsubsection}{\numberline {5.6.2.2}\texttt {proxy\_thread.c}}{123}
+\contentsline {subsection}{\numberline {5.6.3}Configuration Modules}{125}
+\contentsline {section}{\numberline {5.7}\texttt {Pgxc\_ctl} module}{125}
+\contentsline {subsection}{\numberline {5.7.1}Outline of the module}{126}
+\contentsline {subsection}{\numberline {5.7.2}\texttt {pgxc\_ctl} source code structure}{126}
+\contentsline {subsection}{\numberline {5.7.3}Outline of {\tt pgxc\_ctl} behavior}{126}
+\contentsline {subsection}{\numberline {5.7.4}Inside each program files}{128}
+\contentsline {subsubsection}{\numberline {5.7.4.1}\texttt {bash\_handler.c}}{128}
+\contentsline {subsubsection}{\numberline {5.7.4.2}\texttt {config.c}}{129}
+\contentsline {subsubsection}{\numberline {5.7.4.3}\texttt {coord\_cmd.c}}{135}
+\contentsline {subsubsection}{\numberline {5.7.4.4}\texttt {datanode\_cmd.c}}{144}
+\contentsline {subsubsection}{\numberline {5.7.4.5}\texttt {do\_command.c}}{145}
+\contentsline {subsubsection}{\numberline {5.7.4.6}\texttt {do\_shell.c}}{146}
+\contentsline {subsubsection}{\numberline {5.7.4.7}\texttt {gtm\_cmd.c}}{150}
+\contentsline {subsubsection}{\numberline {5.7.4.8}\texttt {gtm\_util.c}}{156}
+\contentsline {subsubsection}{\numberline {5.7.4.9}\texttt {make\_signature}}{156}
+\contentsline {subsubsection}{\numberline {5.7.4.10}\texttt {mcxt.c}}{157}
+\contentsline {subsubsection}{\numberline {5.7.4.11}\texttt {monitor.c}}{157}
+\contentsline {subsubsection}{\numberline {5.7.4.12}\texttt {pgxc\_ctl.bash}}{157}
+\contentsline {subsubsection}{\numberline {5.7.4.13}\texttt {pgxc\_ctl.c}}{157}
+\contentsline {subsubsection}{\numberline {5.7.4.14}\texttt {pgxc\_ctl\_bash.c}}{158}
+\contentsline {subsubsection}{\numberline {5.7.4.15}\texttt {pgxc\_ctl\_bash.c}}{158}
+\contentsline {subsubsection}{\numberline {5.7.4.16}\texttt {pgxc\_ctl\_bash\_2}}{158}
+\contentsline {subsubsection}{\numberline {5.7.4.17}\texttt {pgxc\_ctl\_conf\_part}}{158}
+\contentsline {subsubsection}{\numberline {5.7.4.18}\texttt {pgxc\_ctl\_log.c}}{158}
+\contentsline {subsubsection}{\numberline {5.7.4.19}\texttt {signature.h}}{159}
+\contentsline {subsubsection}{\numberline {5.7.4.20}\texttt {utils.c}}{159}
+\contentsline {subsubsection}{\numberline {5.7.4.21}variables.c}{160}
+\contentsline {subsubsection}{\numberline {5.7.4.22}\texttt {varnames.h}}{163}
+\contentsline {section}{\numberline {5.8}Pgxc\_clean module}{163}
+\contentsline {subsection}{\numberline {5.8.1}Two-Phase Commit Transactions in Postgres-XC}{163}
+\contentsline {subsection}{\numberline {5.8.2}Transaction Commit Steps}{164}
+\contentsline {subsection}{\numberline {5.8.3}Possible Transaction Status Conflicts}{165}
+\contentsline {subsubsection}{\numberline {5.8.3.1}Implicit 2PC}{165}
+\contentsline {subsubsection}{\numberline {5.8.3.2}Explicit 2PC}{165}
+\contentsline {subsubsection}{\numberline {5.8.3.3}Possible status conflicts and their cleaning-up}{165}
+\contentsline {section}{\numberline {5.9}Pgxc\_monitor module}{166}
+\contentsline {subsection}{\numberline {5.9.1}Monitoring GTM and GTM Proxy}{166}
+\contentsline {subsection}{\numberline {5.9.2}Monitoring Coordinator and Datanode}{167}
+\contentsline {section}{\numberline {5.10}Pgxc\_ddl module}{167}
+\contentsline {chapter}{\numberline {6}Configure Database}{169}
+\contentsline {section}{\numberline {6.1}Changes in initdb}{170}
+\contentsline {subsection}{\numberline {6.1.1}New option}{170}
+\contentsline {subsection}{\numberline {6.1.2}Vacuum freeze}{170}
+\contentsline {section}{\numberline {6.2}Extension of postgresql.conf}{171}
+\contentsline {subsection}{\numberline {6.2.1}List of additional GUC parameters}{171}
+\contentsline {subsection}{\numberline {6.2.2}Additional functions to handle GUC parameters}{173}
+\contentsline {chapter}{\numberline {7}Database Maintenance}{175}
+\contentsline {section}{\numberline {7.1}Vacuum}{176}
+\contentsline {section}{\numberline {7.2}Changes in \texttt {pg\_dump}}{176}
+\contentsline {section}{\numberline {7.3}Table Redistribution}{177}
+\contentsline {chapter}{\numberline {8}Cluster Management}{179}
+\contentsline {section}{\numberline {8.1}Cluster Node}{180}
+\contentsline {subsection}{\numberline {8.1.1}Cluster management statement}{180}
+\contentsline {subsection}{\numberline {8.1.2}Node information catalog}{180}
+\contentsline {subsection}{\numberline {8.1.3}Node manager}{181}
+\contentsline {section}{\numberline {8.2}Node Group}{184}
+\contentsline {subsection}{\numberline {8.2.1}Node group management statement}{184}
+\contentsline {subsection}{\numberline {8.2.2}Group information catalog}{185}
+\contentsline {subsection}{\numberline {8.2.3}Group manager}{185}
+\contentsline {section}{\numberline {8.3}Table Distribution Attributes}{187}
+\contentsline {subsection}{\numberline {8.3.1}Table distribution statement}{187}
+\contentsline {subsection}{\numberline {8.3.2}Table distribution information catalog}{187}
+\contentsline {subsection}{\numberline {8.3.3}High-level functions for distributed table}{188}
+\contentsline {subsubsection}{\numberline {8.3.3.1}\texttt {pgxc\_class.c}}{188}
+\contentsline {chapter}{\numberline {9}Database Object and DDL}{191}
+\contentsline {section}{\numberline {9.1}DDL Propagation to Other Nodes}{192}
+\contentsline {section}{\numberline {9.2}Additional Error Handling}{192}
+\contentsline {section}{\numberline {9.3}Additional Functions to handle DDL}{193}
+\contentsline {section}{\numberline {9.4}Tablespace}{194}
+\contentsline {subsection}{\numberline {9.4.1}Creating Tablespace}{194}
+\contentsline {subsection}{\numberline {9.4.2}Modifying Tablespace}{195}
+\contentsline {subsection}{\numberline {9.4.3}Dropping Tablespace}{195}
+\contentsline {section}{\numberline {9.5}Materialized View}{195}
+\contentsline {subsection}{\numberline {9.5.1}Creating Materialized View}{195}
+\contentsline {subsection}{\numberline {9.5.2}Refreshing Materialized View}{196}
+\contentsline {subsection}{\numberline {9.5.3}Dropping Materialized View}{197}
+\contentsline {section}{\numberline {9.6}Automatic Updatable View}{197}
+\contentsline {section}{\numberline {9.7}Trigger}{197}
+\contentsline {subsection}{\numberline {9.7.1}Trigger Syntax}{197}
+\contentsline {subsection}{\numberline {9.7.2}Creating Trigger}{198}
+\contentsline {subsection}{\numberline {9.7.3}Changing Trigger definition}{198}
+\contentsline {subsection}{\numberline {9.7.4}Dropping Trigger}{198}
+\contentsline {subsection}{\numberline {9.7.5}Firing Trigger}{198}
+\contentsline {subsubsection}{\numberline {9.7.5.1}Other Trigger-firing Functions}{199}
+\contentsline {section}{\numberline {9.8}Event Trigger}{199}
+\contentsline {section}{\numberline {9.9}Temporary Objects}{199}
+\contentsline {chapter}{\numberline {10}Transaction Management}{201}
+\contentsline {section}{\numberline {10.1}Cluster-wide MVCC}{202}
+\contentsline {section}{\numberline {10.2}Global Transaction Management}{202}
+\contentsline {section}{\numberline {10.3}Solution to the SPOF Problem}{208}
+\contentsline {section}{\numberline {10.4}Network Bottleneck}{210}
+\contentsline {section}{\numberline {10.5}Transaction Management at coordinator/datanode backends}{213}
+\contentsline {subsection}{\numberline {10.5.1}\texttt {gtm.c} module}{213}
+\contentsline {subsection}{\numberline {10.5.2}\texttt {xact.c} module}{218}
+\contentsline {chapter}{\numberline {11}Planner and Executor}{221}
+\contentsline {section}{\numberline {11.1}Join Pushdown}{222}
+\contentsline {section}{\numberline {11.2}Order By Pushdown}{223}
+\contentsline {section}{\numberline {11.3}Limit Pushdown}{223}
+\contentsline {section}{\numberline {11.4}Group By Pushdown}{223}
+\contentsline {section}{\numberline {11.5}Window Function Handling}{224}
+\contentsline {section}{\numberline {11.6}Aggregate Function Handling}{224}
+\contentsline {section}{\numberline {11.7}Global Sequence Implementation}{225}
+\contentsline {chapter}{\numberline {12}DML}{227}
+\contentsline {section}{\numberline {12.1}Top level statment}{228}
+\contentsline {section}{\numberline {12.2}Returning Clause}{228}
+\contentsline {section}{\numberline {12.3}DML Handling for Replicated Tables}{228}
+\contentsline {section}{\numberline {12.4}Copy statement handling}{228}
+\contentsline {chapter}{\numberline {13}Session and system functions}{231}
+\contentsline {chapter}{\numberline {14}Miscellaneous Feature}{233}
+\contentsline {section}{\numberline {14.1}Additional \texttt {postgresql.conf} configuration parameters}{234}
+\contentsline {section}{\numberline {14.2}Additional SQL syntax for Postgres-XC}{236}
+\contentsline {chapter}{\numberline {15}Regression Tests}{237}
+\contentsline {section}{\numberline {15.1}General Changes}{238}
+\contentsline {section}{\numberline {15.2}Additional Test for Postgres-XC}{239}
+\contentsline {chapter}{\numberline {16}Benchmark Extension}{241}
+\contentsline {section}{\numberline {16.1}DBT-1 Benchmark}{242}
+\contentsline {section}{\numberline {16.2}Pgbench}{243}
+\contentsline {part}{II\hspace {1em}Postgres-XC Cluster Design, Configuration and Operation}{245}
+\contentsline {chapter}{\numberline {17}Writing configuration}{249}
+\contentsline {section}{\numberline {17.1}Overview of \texttt {pgxc\_ctl} configuration file and environment}{249}
+\contentsline {section}{\numberline {17.2}Get configuration file template}{250}
+\contentsline {section}{\numberline {17.3}How configuration file looks like}{250}
+\contentsline {section}{\numberline {17.4}Common configuration section}{251}
+\contentsline {section}{\numberline {17.5}GTM master configuration}{253}
+\contentsline {section}{\numberline {17.6}GTM slave configuration}{255}
+\contentsline {section}{\numberline {17.7}GTM proxy configuration}{256}
+\contentsline {section}{\numberline {17.8}Coordinator master configuration}{257}
+\contentsline {section}{\numberline {17.9}Coordinator slave configuration}{260}
+\contentsline {section}{\numberline {17.10}Datanode master configuration}{260}
+\contentsline {section}{\numberline {17.11}Datanode slave configuration}{262}
+\contentsline {chapter}{\numberline {18}Initializing Postgres-XC{} cluster}{265}
+\contentsline {section}{\numberline {18.1}Invoke {\tt pgxc\_ctl}}{265}
+\contentsline {section}{\numberline {18.2}Deploy Postgres-XC{} binaries to servers}{265}
+\contentsline {section}{\numberline {18.3}Initialize the cluster}{266}
+\contentsline {section}{\numberline {18.4}What {\tt init all} does}{266}
+\contentsline {chapter}{\numberline {19}Build your database}{269}
+\contentsline {chapter}{\numberline {20}Run your SQL statements}{271}
+\contentsline {chapter}{\numberline {21}Writing applications}{273}
+\contentsline {chapter}{\numberline {22}Backing up Postgres-XC{} cluster}{275}
+\contentsline {section}{\numberline {22.1}\texttt {pg\_dump} and \texttt {pg\_dumpall}}{275}
+\contentsline {section}{\numberline {22.2}WAL-shipping backup}{275}
+\contentsline {chapter}{\numberline {23}Recovery from the backup}{277}
+\contentsline {section}{\numberline {23.1}Recovery with \texttt {pg\_dump} and \texttt {pg\_dumpall}}{277}
+\contentsline {section}{\numberline {23.2}Recovery from WAL shipping archive}{277}
+\contentsline {chapter}{\numberline {24}Node failover}{279}
+\contentsline {section}{\numberline {24.1}GTM slave promotion}{279}
+\contentsline {section}{\numberline {24.2}Coordinator slave promotion}{280}
+\contentsline {section}{\numberline {24.3}Datanode slave promotion}{281}
+\contentsline {chapter}{\numberline {25}Adding nodes}{283}
+\contentsline {section}{\numberline {25.1}Adding GTM slave}{283}
+\contentsline {section}{\numberline {25.2}What about GTM master?}{283}
+\contentsline {section}{\numberline {25.3}Adding a GTM proxy}{284}
+\contentsline {section}{\numberline {25.4}Adding a coordinator master}{284}
+\contentsline {section}{\numberline {25.5}Adding a coordinator slave}{285}
+\contentsline {section}{\numberline {25.6}Adding a datanode master}{286}
+\contentsline {section}{\numberline {25.7}Adding a datanode slave}{287}
+\contentsline {chapter}{\numberline {26}Removing nodes}{289}
+\contentsline {section}{\numberline {26.1}Removing GTM slave}{289}
+\contentsline {section}{\numberline {26.2}Removing GTM proxy}{289}
+\contentsline {section}{\numberline {26.3}Removing coordinator master}{290}
+\contentsline {section}{\numberline {26.4}Removing a coordinator slave}{290}
+\contentsline {section}{\numberline {26.5}Removing a datanode master}{291}
+\contentsline {section}{\numberline {26.6}Removing a datanode slave}{291}

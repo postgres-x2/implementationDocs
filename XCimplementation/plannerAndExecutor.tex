@@ -1,0 +1,272 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Planner and Executor
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  This chapter describes implementaion of \texttt{SELECT} statement and other DML handling.
+  
+  As described in section~\ref{pgxc:FQS} at page~\pageref{pgxc:FQS}, \file{planner()}
+  in \file{planner.c} is the entry point of all the \PG~ and \XC's planner.
+  
+  In vanilla \PG, if no planner hook is defined, it is handled by \file{standard_planner()}.
+  In \XC, in the originating coordinator, it is handled by \file{pgxc_planner()} instead.
+  In the case of datanode or non-originating coordinator where
+  the statement is shipped from other coordinator,
+  it is handled by \file{standard_planner()} just like vanilla \PG.
+  
+  \file{pgxc_planner()} is implemented in \file{pgxcplan.c}, where the statement is handled by
+  \file{pgxc_handle_unsupported_stmts()} to check if given statements are not supported by \XC.
+  If a statement is not supported, then it is treated as an error and the planner returns.
+  If all the statements are suported ones, it is passed to \file{pgxc_FQS_planner()} to check if
+  the whole statement can be shipped to one or more nodes.
+  If so, then the planner returns the plan to the caller.
+  If not, then the statement is passed to \file{standard_planner()} for further work.
+  
+  \file{pgxcplan.c} implements many utility functions used in the planner, as described in
+  section~\ref{pgxc:FQS} in page~\pageref{pgxc:FQS}.
+  
+  There's no \XC-specific code in \file{standard_planner()} and all \XC-specific
+  functionarities are 
+  implemented in other functions called from here.
+  
+  Another module to produce remote plan is \file{pgxcpath.c}, which creates all the
+  remote execute plan
+  as the node \file{RemoteQueryPath} defined in \file{relation.h}.
+  Functions defined in this module is described in the section~\ref{additional:pgxcpath} at
+  page \pageref{additional:pgxcpath}.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:joinPushdown}Join Pushdown}
+
+  Join pushdown is handled in the funciton \file{create_joinrel_rqpath()} as described in
+  subsection~\ref{additional:pgxcpath} on page \pageref{additional:pgxcpath}.
+  
+  This function assumes at least one of the join relations has remote query path
+  and checks the path to outer relation and innter relation.
+  Each path has already been set up by \file{create_plainrel_rqpath()} function defined in
+  \file{pgxcpath.c}.
+  If either relation does not have remote path, then this function returns without changing
+  the original plan.
+  In this case, typically join with system catalog or materialized view, remote relation is
+  materialized at the coordinator and subsequent join operation is performed locally at
+  the coordinator.
+  
+  Then it checks if outer join is path is still parameterized and it is not shippable.
+  
+  If shippable, it checks if join quals are shippable using \file{pgxc_is_expr_shippable()}
+  defined in \file{pgxcship.c}.
+  In fact, shippability of each qual has already been set up by \file{create_remotequery_path()}
+  defined in \file{pgxcpath.c}.
+  
+  Next, if join is innter join, all the other quals are combined with join quals to be pushed down.
+  Quals other than join quals are not pushed down in the case of outer join.
+  This can be improved in the future.
+  
+  Now, all the join fell into simple structure and is ready to check whole join shippability and
+  to build the plan into \file{ExecNodes} structure by \file{pgxc_is_join_shippable()} defined in
+  \file{pgxcship.c}.
+  
+  Here, shippability condition is as follows:
+  
+  \begin{itemize}
+	  \item Both outer and innter relation has \file{ExecNodes}.
+	  \item Join type is inner join, left outer join or full join.   Right outer join is not pushed down.
+	  \item In the case of left outer join, inner relation path must be shippable.
+	  \item In the case of full outer join, both innter and outer relation path must be shippable.
+	  \item Both inner and outer relation are replicated table.
+	  \item If both inner and outer relation are distributed, then two of them should be
+	  		distributed in the same manner, with equi-join on the distribution column and
+			the condition is shippable.
+			In this case, the result is merged at the coordinator.
+	  \item If outer relation is distributed and inner one is replicated, both left outer join and
+	  		inner join are pushed down.
+	  \item If outer relation is replicated and inner one is distributed, only inner join is pushed down.
+	  \item \file{ExecNodes} of inner and outer nodes should be able to be merged.
+  \end{itemize}
+  
+  Again, if \file{pgxc_is_join_shippable()} determines the join is not shippable, original path
+  for inner and outer relations work to materialize them at coordinator and to do the rest of
+  the join operations here in the originating coordinator.
+  
+  By this step, all the local quals have been pushed down to each path using \PG{} planner
+  code to reduce the number of fetched rows.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:orderBy}Order By Pushdown}
+
+  \texttt{ORDER BY} pushdown is handled by \file{create_remotesort_plan():pgxcplan.c}.
+  This function checks if \texttt{ORDER BY} (and any other sort function) can be pushed down
+  and modifies pased in Sort plan and underlying \texttt{Remote Query} plan.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:limit}Limit Pushdown}
+
+  \texttt{LIMIt} pushdown is handled by \file{create_remotelimit_plan():pgxcplan.c}.
+  Similar to \texttt{ORDER BY} push down, it checks if \texttt{LIMIT} clause is pushable.
+  If so, then it pushes \file{limitcount} and \file{limitoffset} if defined.
+  This is done by modifying \file{RemoteQuery} node.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:groupBy}Group By Pushdown}
+
+  \texttt{GROUP BY} pushdown is handled by \file{create_remotegrouping_plan():pgxcplan.c}.
+  Current restriction is as follows:
+
+  \begin{enumerate}
+  	  \item Only plain aggregates (no expressions involving aggregates) and/or expressions in
+	  		\texttt{GROUP BY} clause are pushed down.
+	  \item \texttt{DISTINCT} and \texttt{ORDER BY} clause are not pushed down.
+	  \item Window functions are not pushed down.
+	  \item \texttt{HAVING} clause is not pushed down.
+  \end{enumerate}
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:windowFunc}Window Function Handling}
+
+  At present, window functions are not pushed down unless whole statement can be shipped.
+
+
+%========= SECTION SECTION ===================================================
+
+\section{\label{sec:aggregateFunc}Aggregate Function Handling}
+
+  In \XC, aggregate function handling need an extension from \PG.
+  The background is simple pushdown may not work for some kind of aggregate functions.
+  For example, in the calculation of average, we cannot push down \file{avg()} function to
+  datanodes to calculate global average.
+  Instead, we need to obtain sum and count from each datanode to calculat the final result.
+
+  For this extension, \XC{} introduced new function layer called \textbf{collector function}.
+  The document is available at
+  \url{http://postgres-xc.sourceforge.net/docs/1_2_1/sql-createaggregate.html}.
+
+  Internally, for example, \file{avg()} function definition in the system catalog is
+  defined in \file{pg_aggregate.h} as shown in
+  \url{http://postgres-xc.sourceforge.net/docs/1_2_1/catalog-pg-aggregate.html}.
+
+  In \file{pg_aggregate} system catalog, column \file{aggcollectfn} was added to define
+  new collector function.
+  Definition of \file{avg()} function in \file{pg_aggregate.h} source code is as follows:
+
+  % Source listing ---------------------------------------
+  \begin{lstlisting}[tabsize=4, frame=single]
+/* avg */
+#ifdef PGXC
+  DATA(insert ( 2100  int8_avg_accum  numeric_avg_collect numeric_avg     0   1231    "{0,0}" "{0,0}" ));
+  DATA(insert ( 2101  int4_avg_accum  int8_avg_collect    int8_avg        0   1016    "{0,0}" "{0,0}" ));
+  DATA(insert ( 2102  int2_avg_accum  int8_avg_collect    int8_avg        0   1016    "{0,0}" "{0,0}" ));
+  DATA(insert ( 2103  numeric_avg_accum   numeric_avg_collect numeric_avg     0   1231    "{0,0}" "{0,0}" ));
+  DATA(insert ( 2104  float4_accum    float8_collect  float8_avg      0   1022    "{0,0,0}" "{0,0,0}" ));
+  DATA(insert ( 2105  float8_accum    float8_collect  float8_avg      0   1022    "{0,0,0}" "{0,0,0}" ));
+  DATA(insert ( 2106  interval_accum  interval_collect    interval_avg    0   1187    "{0 second,0 second}" "{0 second,0 second}" ));
+#endif
+  \end{lstlisting}
+  % End source listing -----------------------------------
+
+  In each line with \file{DATA} keyword, the second function corresponds to the collector function for various data types.
+
+  Example of collector function is as follows:
+
+  % Source listing ---------------------------------------
+  \begin{lstlisting}[tabsize=4, frame=single]
+Datum
+int8_avg_collect(PG_FUNCTION_ARGS)
+{
+	ArrayType  *collectarray;
+	ArrayType  *transarray = PG_GETARG_ARRAYTYPE_P(1);
+	Int8TransTypeData *collectdata;
+	Int8TransTypeData *transdata;
+
+	/*
+	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * parameter in-place to reduce palloc overhead. Otherwise we need to make
+	 * a copy of it before scribbling on it.
+	 */
+	if (fcinfo->context &&
+		(IsA(fcinfo->context, AggState) ||
+		 IsA(fcinfo->context, WindowAggState)))
+		collectarray = PG_GETARG_ARRAYTYPE_P(0);
+	else
+		collectarray = PG_GETARG_ARRAYTYPE_P_COPY(0);
+
+	if (ARR_HASNULL(collectarray) ||
+	    ARR_SIZE(collectarray) != ARR_OVERHEAD_NONULLS(1) + sizeof(Int8TransTypeData))
+		elog(ERROR, "expected 2-element int8 array");
+	collectdata = (Int8TransTypeData *) ARR_DATA_PTR(collectarray);
+
+	if (ARR_HASNULL(transarray) ||
+	    ARR_SIZE(transarray) != ARR_OVERHEAD_NONULLS(1) + sizeof(Int8TransTypeData))
+		elog(ERROR, "expected 2-element int8 array");
+	transdata = (Int8TransTypeData *) ARR_DATA_PTR(transarray);
+
+	collectdata->count += transdata->count;
+	collectdata->sum += transdata->sum;
+
+	PG_RETURN_ARRAYTYPE_P(collectarray);
+}
+  \end{lstlisting}
+  % End source listing -----------------------------------
+
+\section{\label{sec:seqExec}Global Sequence Implementation}
+
+  \XC{} has to ensure the uniqueness of the sequence value in a cluster.
+  Similar to global transaction management, coordinators needs sequence management
+  of global tables on GTM.
+  GTM is responsible for it.
+  GTM-side implementaion is described in section \ref{sec:gtm} at page~\pageref{sec:gtm}.
+
+  The global tables mentioned above doesn't include temporary tables.
+  \XC{} manages the sequences on temporary tables locally just
+   like \PG{} does.
+
+  \XC{} didn't modify sequence handling in core planner and the executor.
+
+  Major changes in sequence handling are listed below:
+
+  \begin{itemize}
+  	\item Define a new sequence:
+		\begin{enumerate}
+			\item Define a new sequence
+			\item Call \file{CreateSequenceGTM()} to register sequence information to GTM.
+            \item Define a local relation for the new sequence.
+            \item Register a callback function to drop the defined sequence when the transaction is aborted. 
+		\end{enumerate}
+	\item Alter sequence information
+		\begin{enumerate}
+			\item Call \file{AlterSequenceGTM()} to alter sequence information in GTM.
+            \item Update local sequence information.
+		\end{enumerate}
+	\item Rename a sequence
+		\begin{enumerate}
+			\item Call \file{RenameSequenceGTM()} to rename the sequence in GTM.
+            \item Update local sequence information.
+            \item Register a callback function to rename the renamed sequence to original name when the transaction is aborted. 
+		\end{enumerate}
+	\item Get next sequence values
+		\begin{enumerate}
+			\item Call \file{GetNextValGTM()} to rename the sequence in GTM.
+            \item Update local sequence information with the values returned by GTM.
+		\end{enumerate}
+	\item Set sequence value
+		\begin{enumerate}
+			\item Call \file{SetValGTM()} to set the sequence value in GTM. 
+            \item Update local sequence information. 
+		\end{enumerate}
+  \end{itemize}
+		
+  Did you find that the coordinators have sequence relations like \PG?
+  Yes, you can refer cached value at there.
+  But please note that the sequence values in GTM could be modified by other coordinators.
+  So \file{pg_dump} calls \file{nextval} SQL function to obtaion latest value
+   instead of looking the sequence tables.
+
